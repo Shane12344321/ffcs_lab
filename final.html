@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FFCS Lab Scheduler</title>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f4f5f7;color:#1f2329;font-size:14px;}
+header{background:#1f2329;color:#fff;padding:14px 20px;}
+header h1{margin:0;font-size:18px;}
+header p{margin:4px 0 0;font-size:12px;color:#aeb4bd;}
+.controls{display:flex;gap:10px;align-items:center;padding:10px 20px;background:#fff;border-bottom:1px solid #e3e6ea;flex-wrap:wrap;}
+.btn{border:1px solid #c5cad1;background:#fff;border-radius:7px;padding:7px 13px;font-size:13px;cursor:pointer;font-weight:600;color:#1f2329;}
+.btn:hover{background:#f0f1f3;}
+.btn.primary{background:#2f6f33;border-color:#2f6f33;color:#fff;}
+.btn.primary:hover{background:#256528;}
+.btn.on{background:#1f5fb0;border-color:#1f5fb0;color:#fff;}
+.wrap{display:flex;gap:16px;padding:16px 20px;align-items:flex-start;}
+.left{flex:1.25;min-width:0;}
+.right{flex:1;min-width:340px;}
+.panel{background:#fff;border:1px solid #e3e6ea;border-radius:10px;padding:14px;margin-bottom:16px;}
+.panel h2{margin:0 0 10px;font-size:14px;letter-spacing:.2px;}
+.hint{font-size:12px;color:#6b7280;}
+/* grid */
+table.grid{border-collapse:collapse;width:100%;table-layout:fixed;}
+table.grid th,table.grid td{border:1px solid #e3e6ea;text-align:center;vertical-align:top;}
+table.grid th{background:#f7f8fa;font-size:12px;padding:6px 2px;}
+table.grid .rowlab{background:#f7f8fa;font-size:11px;font-weight:700;width:62px;padding:4px;}
+table.grid .rowlab small{display:block;font-weight:400;color:#8a909a;}
+.cell{height:64px;padding:4px;cursor:pointer;position:relative;transition:background .1s;}
+.cell:hover{background:#eef5ff;}
+.cell.grey{background:#d9d9d9;cursor:not-allowed;color:#8a8a8a;}
+.cell.grey:hover{background:#d9d9d9;}
+.cell.empty{color:#aeb4bd;font-size:11px;}
+.cell.has{cursor:default;}
+.cell.active{outline:3px solid #1f5fb0;outline-offset:-3px;background:#eef5ff;}
+.cell.target{background:#fff7e6;}
+.cell.target:hover{background:#ffeecb;}
+.cell .cnt{font-size:10px;color:#1f5fb0;font-weight:700;}
+.cell .lc{font-size:11px;font-weight:700;line-height:1.25;}
+.cell .ls{font-size:10px;color:#555;line-height:1.2;}
+.cell.locked{background:#eaf6ea;cursor:default;}
+.cell.locked.bl{background:#1f2329;color:#fff;}
+.cell .ordb{position:absolute;top:2px;right:3px;font-size:9px;background:#1f5fb0;color:#fff;border-radius:8px;padding:0 5px;font-weight:700;}
+.cell .unlk{position:absolute;top:2px;left:3px;font-size:10px;color:#b00020;cursor:pointer;}
+.cell.locked.bl .unlk{color:#ff9aa6;}
+/* lock bar */
+#lockBar{position:sticky;top:8px;z-index:5;}
+.lockcard{background:#f0f7f0;border:1px solid #bcd9bc;border-radius:10px;padding:12px;text-align:center;}
+.lockcard.bad{background:#fff1f3;border-color:#f3c3cc;}
+.lockcard .who{font-size:13px;margin-bottom:8px;}
+.lockbig{display:block;width:100%;border:none;border-radius:8px;padding:11px;font-size:15px;font-weight:700;color:#fff;background:#2f6f33;cursor:pointer;}
+.lockbig:hover{background:#256528;}
+.lockbig.dis{background:#b9c0c8;cursor:not-allowed;}
+.lcwarn{color:#b00020;font-size:12px;font-weight:700;margin-top:8px;}
+.lcok{color:#1b7a1b;font-size:12px;font-weight:700;margin-top:8px;}
+/* options */
+.grpdiv{display:flex;align-items:center;gap:8px;margin:14px 0 8px;font-size:12px;font-weight:800;color:#444;text-transform:uppercase;letter-spacing:.4px;}
+.grpdiv:first-child{margin-top:0;}
+.grpdiv .ln{flex:1;height:1px;background:#e0e3e8;}
+.grpdiv .gc{font-size:10px;color:#8a909a;font-weight:600;}
+.opt{border:1px solid #e3e6ea;border-radius:9px;padding:9px 11px;margin-bottom:8px;cursor:pointer;}
+.opt:hover{border-color:#1f5fb0;background:#f7faff;}
+.opt.sel{border-color:#1f5fb0;background:#eef5ff;}
+.opt.black{background:#1f2329;border-color:#1f2329;color:#fff;}
+.opt.black:hover{background:#2c323a;}
+.opt.black .meta{color:#aeb4bd;}
+.opt.dead{opacity:.5;}
+.opt.dead:hover{opacity:.85;}
+.opt .nm{font-weight:700;font-size:13px;}
+.opt .meta{font-size:11px;color:#6b7280;margin-top:2px;}
+.opt .cmt{font-size:11px;margin-top:4px;font-style:italic;color:#555;}
+.opt.black .cmt{color:#cfd3d8;}
+.badge{display:inline-block;font-size:9px;font-weight:800;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle;}
+.badge.bl{background:#000;color:#fff;border:1px solid #fff;}
+.badge.good{background:#d6f0d6;color:#1b6b1b;}
+.badge.dead{background:#ffd9de;color:#b00020;}
+.badge.fit{background:#e3f0ff;color:#15489c;}
+.fitok2{font-size:10px;color:#1b7a1b;font-weight:700;margin-left:6px;}
+/* assist */
+.daystrip{display:flex;gap:6px;margin:6px 0 10px;}
+.dchip{flex:1;text-align:center;border:1px solid #e3e6ea;border-radius:8px;padding:6px 2px;font-size:11px;}
+.dchip .dn{font-weight:800;}
+.dchip .dl{font-size:14px;font-weight:800;margin-top:2px;}
+.dchip.full{background:#eaf6ea;border-color:#bcd9bc;}
+.dchip.part{background:#fff7e6;border-color:#f0dcae;}
+.dchip.dead{background:#f0f1f3;color:#aeb4bd;}
+.statusline{font-size:13px;font-weight:700;margin-bottom:8px;}
+.statusline.bad{color:#b00020;}
+.statusline.ok{color:#1b7a1b;}
+.statusline.done{color:#15489c;}
+.needlist{margin-top:8px;}
+.needrow{display:flex;justify-content:space-between;gap:8px;border:1px solid #e3e6ea;border-radius:8px;padding:7px 10px;margin-bottom:6px;cursor:pointer;font-size:12px;}
+.needrow:hover{border-color:#1f5fb0;background:#f7faff;}
+.needrow .nw{font-weight:700;}
+.needrow .nc{color:#6b7280;}
+.alivenote{font-size:12px;color:#444;margin-top:8px;}
+/* plan */
+.planrow{display:flex;align-items:center;gap:8px;border:1px solid #e3e6ea;border-radius:8px;padding:7px 10px;margin-bottom:6px;font-size:12px;cursor:pointer;}
+.planrow:hover{border-color:#1f5fb0;background:#f7faff;}
+.planrow .st{font-size:14px;}
+.planrow .pc{font-weight:700;}
+.planrow .pw{color:#6b7280;margin-left:auto;}
+.planrow .sc{color:#b8860b;font-weight:700;font-size:10px;}
+.fallback{font-size:11px;color:#6b7280;margin-top:8px;font-style:italic;}
+/* schedule summary */
+.sched .srow{display:flex;justify-content:space-between;border-bottom:1px solid #eef0f3;padding:7px 0;font-size:12px;}
+.sched .srow:last-child{border:none;}
+.sched .sc{font-weight:700;}
+.sched .sd{color:#6b7280;text-align:right;}
+.empty-note{font-size:12px;color:#aeb4bd;}
+.theory .opt{margin-bottom:6px;}
+.cmt-toggle{font-size:11px;color:#1f5fb0;cursor:pointer;}
+</style>
+</head>
+<body>
+<header>
+  <h1>FFCS Lab Scheduler &mdash; 2-per-day planner</h1>
+  <p>Pack all 4 labs into exactly 2 days (2 labs each) &middot; every pick is checked before you commit</p>
+</header>
+<div class="controls">
+  <button class="btn" id="planBtn" onclick="togglePlan()">🎯 Wed+Thu plan mode</button>
+  <button class="btn" onclick="resetAll()">↺ Reset</button>
+  <span class="hint">Click an afternoon slot &rarr; pick a teacher &rarr; lock it in.</span>
+</div>
+<div class="wrap">
+  <div class="left">
+    <div class="panel">
+      <h2>🗓️ Afternoon grid (2:00&ndash;5:30)</h2>
+      <div id="gridBox"></div>
+      <div class="hint" style="margin-top:8px">Grey row = blacklisted lunch slot (unusable). A = 2:00&ndash;3:40, B = 3:51&ndash;5:30.</div>
+    </div>
+    <div id="lockBar"></div>
+    <div class="panel" id="assistPanel">
+      <h2>🧭 2-per-day assistant</h2>
+      <div id="assistBody"></div>
+    </div>
+    <div class="panel" id="planPanel" style="display:none">
+      <h2>🎯 Wed+Thu auto-pack</h2>
+      <div id="planBody"></div>
+    </div>
+  </div>
+  <div class="right">
+    <div class="panel">
+      <h2 id="panelTitle">👩‍🏫 Teacher possibilities</h2>
+      <div id="panelBody"></div>
+    </div>
+    <div class="panel sched">
+      <h2>✅ Your schedule</h2>
+      <div id="schedBody"></div>
+    </div>
+    <div class="panel theory">
+      <h2>📘 Theory-only courses</h2>
+      <div id="theoryBody"></div>
+    </div>
+  </div>
+</div>
+<script>
+const TEACHERS = {
+ "Database": [
+  {
+   "faculty": "LYDIA JANE G",
+   "theory": "D1+TD1",
+   "venue": "SJT301",
+   "lab": "L37+L38",
+   "labVenue": "PRP233",
+   "comment": "strict",
+   "quality": "good"
+  },
+  {
+   "faculty": "RAJESH KUMAR N",
+   "theory": "D1+TD1",
+   "venue": "SJT302",
+   "lab": "L55+L56",
+   "labVenue": "PRP233",
+   "comment": "poor communication skills, specifically a heavy regional accent",
+   "quality": "good"
+  },
+  {
+   "faculty": "SUDHAKAR P",
+   "theory": "D1+TD1",
+   "venue": "SJT305",
+   "lab": "L55+L56",
+   "labVenue": "PRP352",
+   "comment": "Normal... not too strict not too linient",
+   "quality": "good"
+  },
+  {
+   "faculty": "SANGEETHA S",
+   "theory": "D1+TD1",
+   "venue": "SJT303",
+   "lab": "L51+L52",
+   "labVenue": "PRP234",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SAURABH AGRAWAL",
+   "theory": "D1+TD1",
+   "venue": "SJT308",
+   "lab": "L57+L58",
+   "labVenue": "PRP234",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SIVAKUMAR V",
+   "theory": "D1+TD1",
+   "venue": "SJT401",
+   "lab": "L43+L44",
+   "labVenue": "SJT417",
+   "comment": "lazy but poor teaching",
+   "quality": "good"
+  },
+  {
+   "faculty": "DEEPIKA J",
+   "theory": "D1+TD1",
+   "venue": "SJT311",
+   "lab": "L43+L44",
+   "labVenue": "PRP234",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "SRIDEVI S",
+   "theory": "D1+TD1",
+   "venue": "SJT311A",
+   "lab": "L55+L56",
+   "labVenue": "PRP234",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "SIVA SANKARI S",
+   "theory": "D1+TD1",
+   "venue": "SJT402",
+   "lab": "L43+L44",
+   "labVenue": "PRP232",
+   "comment": "good mention (gemini deep research)",
+   "quality": "good"
+  },
+  {
+   "faculty": "POORNIMA N",
+   "theory": "D1+TD1",
+   "venue": "SJT404",
+   "lab": "L37+L38",
+   "labVenue": "PRP352",
+   "comment": "competitive grading curve",
+   "quality": "good"
+  },
+  {
+   "faculty": "BAIJU B V",
+   "theory": "D1+TD1",
+   "venue": "SJT407",
+   "lab": "L51+L52",
+   "labVenue": "PRP231",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "JUSTIN GOPINATH A",
+   "theory": "D1+TD1",
+   "venue": "SJT409",
+   "lab": "L51+L52",
+   "labVenue": "PRP232",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SARASWATHI PRIYADHARSHINI A",
+   "theory": "D1+TD1",
+   "venue": "SJT408",
+   "lab": "L51+L52",
+   "labVenue": "PRP233",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "NAVAMANI T M",
+   "theory": "D1+TD1",
+   "venue": "SJT422",
+   "lab": "L33+L34",
+   "labVenue": "PRP231",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "ANURADHA D",
+   "theory": "D1+TD1",
+   "venue": "SJT423",
+   "lab": "L37+L38",
+   "labVenue": "PRP234",
+   "comment": "",
+   "quality": "blacklisted"
+  },
+  {
+   "faculty": "MONASH P",
+   "theory": "D1+TD1",
+   "venue": "SJT424",
+   "lab": "L33+L34",
+   "labVenue": "PRP232",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "AKILA VICTOR",
+   "theory": "D1+TD1",
+   "venue": "SJT501",
+   "lab": "L33+L34",
+   "labVenue": "PRP233",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "JAYALAKSHMI M",
+   "theory": "D1+TD1",
+   "venue": "SJT502",
+   "lab": "L57+L58",
+   "labVenue": "PRP232",
+   "comment": "",
+   "quality": "normal"
+  }
+ ],
+ "Operating Systems": [
+  {
+   "faculty": "MOHANKUMAR B",
+   "theory": "B1+TB1",
+   "venue": "SJT308",
+   "lab": "L39+L40",
+   "labVenue": "PRP232",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "DHIVYAA C R",
+   "theory": "B1+TB1",
+   "venue": "SJT305",
+   "lab": "L39+L40",
+   "labVenue": "PRP233",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "MANIKANDAN K",
+   "theory": "B1+TB1",
+   "venue": "SJT303",
+   "lab": "L33+L34",
+   "labVenue": "PRP234",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SRI PREETHAA K R",
+   "theory": "B1+TB1",
+   "venue": "SJT304",
+   "lab": "L55+L56",
+   "labVenue": "PRP231",
+   "comment": "rigid lab",
+   "quality": "good"
+  },
+  {
+   "faculty": "SURESH P",
+   "theory": "B1+TB1",
+   "venue": "SJT401",
+   "lab": "L31+L32",
+   "labVenue": "PRP231",
+   "comment": "My OS prof (Suresh P) idk what has happened to him but all of a sudden he isnt giving to ANYONE marks at all in quizzes",
+   "quality": "good"
+  },
+  {
+   "faculty": "SIVAPRAKASH S",
+   "theory": "B1+TB1",
+   "venue": "SJT403",
+   "lab": "L45+L46",
+   "labVenue": "PRP231",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "MOHANA SUNDARI L",
+   "theory": "B1+TB1",
+   "venue": "SJT315",
+   "lab": "L55+L56",
+   "labVenue": "PRP232",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "NIHA K",
+   "theory": "B1+TB1",
+   "venue": "SJT405",
+   "lab": "L45+L46",
+   "labVenue": "PRP234",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "KEERTHIKA P",
+   "theory": "B1+TB1",
+   "venue": "SJT402",
+   "lab": "L39+L40",
+   "labVenue": "PRP231",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "PEREPI RAJARAJESWARI",
+   "theory": "B1+TB1",
+   "venue": "SJT407",
+   "lab": "L31+L32",
+   "labVenue": "PRP232",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "JAGALINGAM P",
+   "theory": "B1+TB1",
+   "venue": "SJT421",
+   "lab": "L31+L32",
+   "labVenue": "PRP233",
+   "comment": "very boring",
+   "quality": "good"
+  },
+  {
+   "faculty": "HITESHWAR KUMAR AZAD",
+   "theory": "B1+TB1",
+   "venue": "SJT408",
+   "lab": "L43+L44",
+   "labVenue": "PRP233",
+   "comment": "Hiteshwar Kumar is also good",
+   "quality": "good"
+  },
+  {
+   "faculty": "RUBY D",
+   "theory": "B1+TB1",
+   "venue": "SJT415",
+   "lab": "L57+L58",
+   "labVenue": "PRP231",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "MANOOV R",
+   "theory": "B1+TB1",
+   "venue": "SJT422",
+   "lab": "L45+L46",
+   "labVenue": "PRP233",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "VIJAYA KUMAR K",
+   "theory": "B1+TB1",
+   "venue": "SJT424",
+   "lab": "L37+L38",
+   "labVenue": "PRP231",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "SIVAKUMAR. N",
+   "theory": "B1+TB1",
+   "venue": "SJT409",
+   "lab": "L45+L46",
+   "labVenue": "PRP232",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "VENKATA LAKSHMI NARAYANA K",
+   "theory": "B1+TB1",
+   "venue": "SJT501",
+   "lab": "L49+L50",
+   "labVenue": "PRP231",
+   "comment": "getting S in lab for OS with Venkata Lakshmi Narayana is difficult",
+   "quality": "good"
+  },
+  {
+   "faculty": "USHUS ELIZEBETH ZACHARIAH",
+   "theory": "B1+TB1",
+   "venue": "SJT423",
+   "lab": "L43+L44",
+   "labVenue": "PRP231",
+   "comment": "very very strict in internals",
+   "quality": "good"
+  },
+  {
+   "faculty": "ANTO S",
+   "theory": "B1+TB1",
+   "venue": "SJT502",
+   "lab": "L37+L38",
+   "labVenue": "PRP232",
+   "comment": "\"good\"",
+   "quality": "good"
+  }
+ ],
+ "Networks": [
+  {
+   "faculty": "ANURADHA G",
+   "theory": "F1+TF1",
+   "venue": "SJT304",
+   "lab": "L45+L46",
+   "labVenue": "SJT517",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "JAYA SUBALAKSHMI R",
+   "theory": "F1+TF1",
+   "venue": "SJT302",
+   "lab": "L37+L38",
+   "labVenue": "SJT621",
+   "comment": "blacklisted multiple fail annoyinhg 0.25 mark q",
+   "quality": "blacklisted"
+  },
+  {
+   "faculty": "TAMIZHARASI T",
+   "theory": "F1+TF1",
+   "venue": "SJT303",
+   "lab": "L37+L38",
+   "labVenue": "SJT622",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "ARIVOLI A",
+   "theory": "F1+TF1",
+   "venue": "SJT308",
+   "lab": "L49+L50",
+   "labVenue": "SJT622",
+   "comment": "unpredictable",
+   "quality": "good"
+  },
+  {
+   "faculty": "KALPANA V",
+   "theory": "F1+TF1",
+   "venue": "SJT423",
+   "lab": "L51+L52",
+   "labVenue": "SJT621",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "ANUSHA N",
+   "theory": "F1+TF1",
+   "venue": "SJT405",
+   "lab": "L51+L52",
+   "labVenue": "SJT316",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "RAVITEJA BUDDALA",
+   "theory": "F1+TF1",
+   "venue": "SJT311A",
+   "lab": "L51+L52",
+   "labVenue": "SJT317",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SHOBHA REKH",
+   "theory": "F1+TF1",
+   "venue": "SJT315",
+   "lab": "L51+L52",
+   "labVenue": "SJT622",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "THAMIZHARASAN S",
+   "theory": "F1+TF1",
+   "venue": "SJT402",
+   "lab": "L39+L40",
+   "labVenue": "SJT621",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SUDARSHAN NANDY",
+   "theory": "F1+TF1",
+   "venue": "SJT403",
+   "lab": "L43+L44",
+   "labVenue": "SJT622",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "KOPPERUNDEVI N",
+   "theory": "F1+TF1",
+   "venue": "SJT409",
+   "lab": "L49+L50",
+   "labVenue": "SJT517",
+   "comment": "\"best\"",
+   "quality": "good"
+  },
+  {
+   "faculty": "SURESH A",
+   "theory": "F1+TF1",
+   "venue": "SJT421",
+   "lab": "L39+L40",
+   "labVenue": "SJT622",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SUGUMAR R",
+   "theory": "F1+TF1",
+   "venue": "SJT424",
+   "lab": "L55+L56",
+   "labVenue": "SJT621",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "SANTHI H",
+   "theory": "F1+TF1",
+   "venue": "SJT301",
+   "lab": "L31+L32",
+   "labVenue": "SJT621",
+   "comment": "",
+   "quality": "blacklisted"
+  },
+  {
+   "faculty": "AYYASAMY S",
+   "theory": "F1+TF1",
+   "venue": "SJT501",
+   "lab": "L31+L32",
+   "labVenue": "SJT622",
+   "comment": "ok. Not too strict. Taught ok.",
+   "quality": "good"
+  },
+  {
+   "faculty": "KALAAVATHI B",
+   "theory": "F1+TF1",
+   "venue": "SJT502",
+   "lab": "L45+L46",
+   "labVenue": "SJT622",
+   "comment": "",
+   "quality": "normal"
+  }
+ ],
+ "Compiler": [
+  {
+   "faculty": "NITHYA K",
+   "theory": "G1+TG1",
+   "venue": "SJT304",
+   "lab": "L43+L44",
+   "labVenue": "SJT621",
+   "comment": "",
+   "quality": "blacklisted"
+  },
+  {
+   "faculty": "BANUPRIYA R",
+   "theory": "G1+TG1",
+   "venue": "SJT305",
+   "lab": "L45+L46",
+   "labVenue": "SJT621",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "MUKHTAR AHMAD SOFI",
+   "theory": "G1+TG1",
+   "venue": "SJT308",
+   "lab": "L57+L58",
+   "labVenue": "SJT418",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "NAGA PRIYADARSINI R",
+   "theory": "G1+TG1",
+   "venue": "SJT311A",
+   "lab": "L49+L50",
+   "labVenue": "SJT317",
+   "comment": "",
+   "quality": "blacklisted"
+  },
+  {
+   "faculty": "BHAWANA TYAGI",
+   "theory": "G1+TG1",
+   "venue": "SJT311",
+   "lab": "L55+L56",
+   "labVenue": "SJT317",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "MUTHUNAGAI S U",
+   "theory": "G1+TG1",
+   "venue": "SJT403",
+   "lab": "L55+L56",
+   "labVenue": "SJT418",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "RANJITHKUMAR S",
+   "theory": "G1+TG1",
+   "venue": "SJT404",
+   "lab": "L49+L50",
+   "labVenue": "SJT316",
+   "comment": "acclaim (gemini deep)",
+   "quality": "good"
+  },
+  {
+   "faculty": "BHUVANESWARI M",
+   "theory": "G1+TG1",
+   "venue": "SJT422",
+   "lab": "L43+L44",
+   "labVenue": "SJT316",
+   "comment": "strict no phones",
+   "quality": "good"
+  },
+  {
+   "faculty": "SATHIYA KUMAR C",
+   "theory": "G1+TG1",
+   "venue": "SJT501",
+   "lab": "L37+L38",
+   "labVenue": "SJT316",
+   "comment": "possibly ok if attentive",
+   "quality": "good"
+  },
+  {
+   "faculty": "ARUMUGA ARUN R",
+   "theory": "G1+TG1",
+   "venue": "SJT405",
+   "lab": "L57+L58",
+   "labVenue": "SJT316",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SATHYA K",
+   "theory": "G1+TG1",
+   "venue": "SJT409",
+   "lab": "L55+L56",
+   "labVenue": "SJT316",
+   "comment": "",
+   "quality": "blacklisted"
+  },
+  {
+   "faculty": "KRISHNARAJ N",
+   "theory": "G1+TG1",
+   "venue": "SJT421",
+   "lab": "L45+L46",
+   "labVenue": "SJT316",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "BOOMINATHAN P",
+   "theory": "G1+TG1",
+   "venue": "SJT502",
+   "lab": "L31+L32",
+   "labVenue": "SJT316",
+   "comment": "",
+   "quality": "blacklisted"
+  },
+  {
+   "faculty": "SHALINI L",
+   "theory": "G1+TG1",
+   "venue": "SJT603",
+   "lab": "L43+L44",
+   "labVenue": "SJT418",
+   "comment": "",
+   "quality": "good"
+  },
+  {
+   "faculty": "SUGANTHINI C",
+   "theory": "G1+TG1",
+   "venue": "SJT315",
+   "lab": "L45+L46",
+   "labVenue": "SJT418",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "VISHNU PRIYA A",
+   "theory": "G1+TG1",
+   "venue": "SJT424",
+   "lab": "L43+L44",
+   "labVenue": "SJT317",
+   "comment": "highly blacklisted",
+   "quality": "blacklisted"
+  }
+ ],
+ "AI": [
+  {
+   "faculty": "ATHIRA K",
+   "theory": "C1+TC1",
+   "venue": "SJT303",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "ANAND BIHARI",
+   "theory": "C1+TC1",
+   "venue": "SJT305",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "BALAMURUGAN R",
+   "theory": "C1+TC1",
+   "venue": "SJT311",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SATYAJIT DAS",
+   "theory": "C1+TC1",
+   "venue": "SJT304",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SHASHANK MOULI SATAPATHY",
+   "theory": "C1+TC1",
+   "venue": "SJT315",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "NAGARAJA RAO A",
+   "theory": "C1+TC1",
+   "venue": "SJT404",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "RAJAKUMAR K",
+   "theory": "C1+TC1",
+   "venue": "SJT401",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "NAGESHWAR RAO RAGI",
+   "theory": "C1+TC1",
+   "venue": "SJT405",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "GLADYS GNANA KIRUBA B",
+   "theory": "C1+TC1",
+   "venue": "SJT415",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "ILANTHENRAL K P S K",
+   "theory": "C1+TC1",
+   "venue": "SJT402",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "NALLIAH M",
+   "theory": "C1+TC1",
+   "venue": "SJT311A",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "RAJESHKANNAN R",
+   "theory": "C1+TC1",
+   "venue": "SJT421",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "blacklisted"
+  },
+  {
+   "faculty": "THANDEESWARAN R",
+   "theory": "C1+TC1",
+   "venue": "SJT403",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "AKILA VICTOR",
+   "theory": "C1+TC1",
+   "venue": "SJT501",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "JAYASHREE J",
+   "theory": "C1+TC1",
+   "venue": "SJT408",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "NAGA RAJA G",
+   "theory": "C1+TC1",
+   "venue": "SJT409",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "VISWANATHAN P",
+   "theory": "C1+TC1",
+   "venue": "SJT423",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "ANNAPURNA JONNALAGADDA",
+   "theory": "C1+TC1",
+   "venue": "SJT502",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "GUNAVATHI C",
+   "theory": "C1+TC1",
+   "venue": "SJT424",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "TAMIZHARASI T",
+   "theory": "C1+TC1",
+   "venue": "SJT407",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SAMRIDDHI SARKAR",
+   "theory": "C1+TC1",
+   "venue": "SJT308",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "ARPITA GHOSH",
+   "theory": "C1+TC1",
+   "venue": "SJT302",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "GERALDINE BESSIE AMALI D",
+   "theory": "C1+TC1",
+   "venue": "SJT301",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "blacklisted"
+  },
+  {
+   "faculty": "RAMESH BABU VEMULURI",
+   "theory": "C1+TC1",
+   "venue": "SJT422",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  }
+ ],
+ "CloudArch": [
+  {
+   "faculty": "RAJASEKAR V R",
+   "theory": "A1+TA1",
+   "venue": "SJT301",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SIVARANJANI A",
+   "theory": "A1+TA1",
+   "venue": "SJT303",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "GUNASEKAR M",
+   "theory": "A1+TA1",
+   "venue": "SJT304",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SUKANTA GHOSH",
+   "theory": "A1+TA1",
+   "venue": "SJT308",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SRI PREETHAA K R",
+   "theory": "A1+TA1",
+   "venue": "SJT305",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SUDHAKAR P",
+   "theory": "A1+TA1",
+   "venue": "SJT311A",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "VIDHYA G",
+   "theory": "A1+TA1",
+   "venue": "SJT311",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "GAYATHRI S",
+   "theory": "A1+TA1",
+   "venue": "SJT401",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "MADHAN E S",
+   "theory": "A1+TA1",
+   "venue": "SJT407",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "KOPPERUNDEVI N",
+   "theory": "A1+TA1",
+   "venue": "SJT408",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SUNIJA A P",
+   "theory": "A1+TA1",
+   "venue": "SJT402",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "JAFAR ALI IBRAHIM S",
+   "theory": "A1+TA1",
+   "venue": "SJT409",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SUNIL KUMAR",
+   "theory": "A1+TA1",
+   "venue": "SJT403",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "MOHANA SUNDARI L",
+   "theory": "A1+TA1",
+   "venue": "SJT404",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SAURABH AGRAWAL",
+   "theory": "A1+TA1",
+   "venue": "SJT415",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SARASWATHI PRIYADHARSHINI A",
+   "theory": "A1+TA1",
+   "venue": "SJT421",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "KAKELLI ANIL KUMAR",
+   "theory": "A1+TA1",
+   "venue": "SJT423",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "ARCHANA T",
+   "theory": "A1+TA1",
+   "venue": "SJT424",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SIVAKUMAR T",
+   "theory": "A1+TA1",
+   "venue": "SJT422",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "MUTHUNAGAI S U",
+   "theory": "A1+TA1",
+   "venue": "SJT302",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "SHARMILA C",
+   "theory": "A1+TA1",
+   "venue": "SJT315",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "NAVEENKUMAR J",
+   "theory": "A1+TA1",
+   "venue": "SJT501",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "PADMAVATHY T",
+   "theory": "A1+TA1",
+   "venue": "SJT405",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  },
+  {
+   "faculty": "MUKHTAR AHMAD SOFI",
+   "theory": "A1+TA1",
+   "venue": "SJT502",
+   "lab": "",
+   "labVenue": "",
+   "comment": "",
+   "quality": "normal"
+  }
+ ]
+};
+const LAB_COURSES=['Database','Operating Systems','Networks','Compiler'];
+const THEORY_COURSES=['AI','CloudArch'];
+const PRIO=['Compiler','Networks','Database','Operating Systems'];
+const ABBR={'Database':'DB','Operating Systems':'OS','Networks':'NET','Compiler':'COMP','AI':'AI','CloudArch':'CLOUD'};
+const DAYS=['Mon','Tue','Wed','Thu','Fri'];
+const WIN={Mon:{A:'L31+L32',B:'L33+L34'},Tue:{A:'L37+L38',B:'L39+L40'},Wed:{A:'L43+L44',B:'L45+L46'},Thu:{A:'L49+L50',B:'L51+L52'},Fri:{A:'L55+L56',B:'L57+L58'}};
+const GREY={Mon:'L35+L36',Tue:'L41+L42',Wed:'L47+L48',Thu:'L53+L54',Fri:'L59+L60'};
+const PAIR2DW={};DAYS.forEach(d=>['A','B'].forEach(w=>{PAIR2DW[WIN[d][w]]={day:d,win:w};}));
+// all unordered day-pairs
+const DAYPAIRS=[];for(let i=0;i<DAYS.length;i++)for(let j=i+1;j<DAYS.length;j++)DAYPAIRS.push([DAYS[i],DAYS[j]]);
+// permutations of the 4 lab courses
+const PERMS=(function(a){const r=[];(function p(cur,rest){if(!rest.length){r.push(cur);return;}for(let i=0;i<rest.length;i++)p(cur.concat(rest[i]),rest.slice(0,i).concat(rest.slice(i+1)));})([],a);return r;})(LAB_COURSES);
+// plan
+const PLAN={days:['Wed','Thu'],steps:[
+  {order:1,course:'Compiler',day:'Wed',win:'A',pair:'L43+L44',scarce:true,note:'shallow – grab first'},
+  {order:2,course:'Networks',day:'Thu',win:'A',pair:'L49+L50',scarce:true,note:'thin pool'},
+  {order:3,course:'Database',day:'Thu',win:'B',pair:'L51+L52',scarce:false,note:''},
+  {order:4,course:'Operating Systems',day:'Wed',win:'B',pair:'L45+L46',scarce:false,note:''}
+],fallback:'If Compiler @ Wed A is taken, switch the target day-pair to Wed + Fri.'};
+const PLANBYPAIR={};PLAN.steps.forEach(s=>PLANBYPAIR[s.pair]=s);
+
+// ---- state ----
+const schedule={}; // course -> entry (locked)
+let activeSlot=null; // lab pair string
+let pending=null;    // {course, ...teacher}
+let planMode=false;
+let showComments=true;
+
+// ---- helpers ----
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function surname(n){return n;}
+function isBL(t){return t.quality==='blacklisted';}
+function offeredPair(course,pair){return (TEACHERS[course]||[]).some(t=>t.lab===pair);}
+function courseAt(pair){for(const c of LAB_COURSES){const e=schedule[c];if(e&&e.lab===pair)return c;}return null;}
+function currentLocks(){const o={};for(const c of LAB_COURSES){const e=schedule[c];if(e&&e.lab)o[c]=e.lab;}return o;}
+function pairLabel(pair){const d=PAIR2DW[pair];return d?d.day+' · '+d.win:pair;}
+
+// brute-force all valid 2-day x 2-per-day completions consistent with locks
+function validFinals(locks){
+  const out=[];
+  for(const [d1,d2] of DAYPAIRS){
+    const slots=[WIN[d1].A,WIN[d1].B,WIN[d2].A,WIN[d2].B];
+    for(const perm of PERMS){
+      let ok=true;
+      for(let i=0;i<4;i++){if(!offeredPair(perm[i],slots[i])){ok=false;break;}}
+      if(!ok)continue;
+      let cons=true;
+      for(const c in locks){const idx=perm.indexOf(c);if(slots[idx]!==locks[c]){cons=false;break;}}
+      if(cons)out.push({days:[d1,d2]});
+    }
+  }
+  return out;
+}
+function keepsFor(course,pair){const l=currentLocks();l[course]=pair;return validFinals(l).length;}
+
+// options (teachers) available for the active lab slot, across not-yet-locked courses
+function optionsFor(pair){
+  const out=[];
+  for(const c of LAB_COURSES){
+    if(schedule[c])continue;            // course already locked elsewhere
+    for(const t of (TEACHERS[c]||[])){
+      if(t.lab===pair)out.push(Object.assign({course:c},t));
+    }
+  }
+  return out;
+}
+
+// ---- interactions ----
+function clickCell(pair){
+  if(GREY_PAIRS.has(pair))return;
+  if(courseAt(pair))return;            // occupied
+  activeSlot=(activeSlot===pair)?null:pair;
+  pending=null;
+  render();
+}
+const GREY_PAIRS=new Set(Object.values(GREY));
+function gotoSlot(pair){activeSlot=pair;pending=null;render();document.getElementById('panelTitle').scrollIntoView({behavior:'smooth',block:'center'});}
+function pick(course,key){const opts=optionsFor(activeSlot);const o=opts.find(x=>x.course===course&&(x.faculty)===key);if(!o)return;pending=o;render();}
+function lockIn(){if(!pending)return;schedule[pending.course]=Object.assign({},pending);const p=pending;activeSlot=null;pending=null;render();}
+function unlock(course){if(!schedule[course])return;if(!confirm('Unlock '+course+' ('+esc(schedule[course].faculty)+')? Deselecting should be a last resort.'))return;delete schedule[course];render();}
+function togglePlan(){planMode=!planMode;document.getElementById('planPanel').style.display=planMode?'':'none';document.getElementById('planBtn').classList.toggle('on',planMode);render();}
+function resetAll(){if(!confirm('Clear the entire schedule?'))return;for(const k in schedule)delete schedule[k];activeSlot=null;pending=null;render();}
+function setTheory(course,key){const t=(TEACHERS[course]||[]).find(x=>x.faculty===key);if(!t)return;if(schedule[course]&&schedule[course].faculty===key){if(confirm('Unselect '+esc(key)+'?'))delete schedule[course];}else{schedule[course]=Object.assign({course:course},t);}render();}
+function autoFillPlan(){
+  for(const s of PLAN.steps){
+    if(schedule[s.course])continue;
+    if(courseAt(s.pair))continue;
+    const cands=(TEACHERS[s.course]||[]).filter(t=>t.lab===s.pair);
+    if(!cands.length)continue;
+    cands.sort((a,b)=>rank(a)-rank(b));
+    schedule[s.course]=Object.assign({course:s.course},cands[0]);
+  }
+  activeSlot=null;pending=null;render();
+}
+function rank(t){return t.quality==='good'?0:t.quality==='normal'?1:2;}
+
+// ---- rendering ----
+function render(){renderGrid();renderPanel();renderLockBar();renderAssist();renderPlan();renderSchedule();renderTheory();}
+
+function renderGrid(){
+  let h='<table class="grid"><tr><th class="rowlab"></th>'+DAYS.map(d=>'<th>'+d+'</th>').join('')+'</tr>';
+  const rows=[['A','2:00','3:40'],['B','3:51','5:30'],['C','grey','']];
+  for(const [win,t1,t2] of rows){
+    h+='<tr><td class="rowlab">'+win+'<small>'+t1+(t2?('–'+t2):'')+'</small></td>';
+    for(const d of DAYS){
+      if(win==='C'){h+='<td class="cell grey">×</td>';continue;}
+      const pair=WIN[d][win];
+      const lockedC=courseAt(pair);
+      let cls='cell',inner='';
+      if(lockedC){
+        const e=schedule[lockedC];const bl=isBL(e);
+        cls+=' has locked'+(bl?' bl':'');
+        inner='<span class="unlk" onclick="event.stopPropagation();unlock(\''+lockedC+'\')">✕</span>'+
+              '<div class="lc">'+ABBR[lockedC]+'</div><div class="ls">'+esc(e.faculty)+'</div>';
+      }else{
+        const opts=optionsFor(pair);
+        if(planMode&&PLANBYPAIR[pair]&&PLANBYPAIR[pair].day===PAIR2DW[pair].day)cls+=' target';
+        if(activeSlot===pair)cls+=' active';
+        if(opts.length){cls+='';inner='<div class="cnt">'+opts.length+' option'+(opts.length>1?'s':'')+'</div>';}
+        else{cls+=' empty';inner='&mdash;';}
+        if(planMode&&PLANBYPAIR[pair]){inner='<span class="ordb">#'+PLANBYPAIR[pair].order+'</span>'+inner;}
+      }
+      h+='<td class="'+cls+'" onclick="clickCell(\''+pair+'\')">'+inner+'</td>';
+    }
+    h+='</tr>';
+  }
+  h+='</table>';
+  document.getElementById('gridBox').innerHTML=h;
+}
+
+function renderPanel(){
+  const title=document.getElementById('panelTitle');
+  const body=document.getElementById('panelBody');
+  if(!activeSlot){title.textContent='👩‍🏫 Teacher possibilities';body.innerHTML='<div class="empty-note">Click an afternoon slot in the grid to see who teaches there.</div>';return;}
+  title.textContent='👩‍🏫 '+pairLabel(activeSlot)+' — possibilities';
+  let opts=optionsFor(activeSlot);
+  if(!opts.length){body.innerHTML='<div class="empty-note">No remaining course offers a lab in this slot.</div>';return;}
+  // annotate with feasibility keeps
+  opts.forEach(o=>{o.__keeps=keepsFor(o.course,activeSlot);});
+  // sort: PRIO order, then safe-before-dead, then good-before-normal-before-bl
+  opts.sort((a,b)=>{
+    const pa=PRIO.indexOf(a.course),pb=PRIO.indexOf(b.course);
+    if(pa!==pb)return pa-pb;
+    const da=a.__keeps===0?1:0,db=b.__keeps===0?1:0;if(da!==db)return da-db;
+    return rank(a)-rank(b);
+  });
+  let h='';let lastCourse=null;
+  for(const o of opts){
+    if(o.course!==lastCourse){
+      const n=opts.filter(x=>x.course===o.course).length;
+      h+='<div class="grpdiv"><span>'+esc(o.course)+'</span><span class="ln"></span><span class="gc">'+n+' option'+(n>1?'s':'')+'</span></div>';
+      lastCourse=o.course;
+    }
+    const sel=(pending&&pending.course===o.course&&pending.faculty===o.faculty);
+    const dead=o.__keeps===0;
+    let cls='opt';if(sel)cls+=' sel';if(isBL(o))cls+=' black';if(dead)cls+=' dead';
+    let badges='';
+    if(isBL(o))badges+='<span class="badge bl">⛔ blacklisted</span>';
+    else if(o.quality==='good')badges+='<span class="badge good">★ recommended</span>';
+    if(dead)badges+='<span class="badge dead">⛔ breaks 2×2</span>';
+    else badges+='<span class="fitok2">✓ keeps '+o.__keeps+'</span>';
+    h+='<div class="'+cls+'" onclick="pick(\''+o.course+'\',\''+esc(o.faculty).replace(/\\/g,"").replace(/'/g,"\\'")+'\')">'+
+       '<div class="nm">'+esc(o.faculty)+badges+'</div>'+
+       '<div class="meta">Theory '+esc(o.theory)+' · '+esc(o.venue)+' &nbsp;|&nbsp; Lab '+esc(o.lab)+' · '+esc(o.labVenue)+'</div>'+
+       (showComments&&o.comment?('<div class="cmt">“'+esc(o.comment)+'”</div>'):'')+
+       '</div>';
+  }
+  body.innerHTML=h;
+}
+
+function renderLockBar(){
+  const box=document.getElementById('lockBar');
+  if(!pending){box.innerHTML='';return;}
+  const keeps=keepsFor(pending.course,pending.lab);
+  const bad=keeps===0;
+  let h='<div class="lockcard'+(bad?' bad':'')+'">';
+  h+='<div class="who">Lock <b>'+esc(pending.course)+'</b> → <b>'+esc(pending.faculty)+'</b><br><span class="hint">'+pairLabel(pending.lab)+' · Lab '+esc(pending.lab)+'</span></div>';
+  h+='<button class="lockbig'+(bad?' dis':'')+'" onclick="lockIn()">🔒 Lock it in</button>';
+  if(bad)h+='<div class="lcwarn">⛔ This breaks your 2-days-of-2 goal — no valid completion remains. Pick another slot/teacher.</div>';
+  else h+='<div class="lcok">✅ Safe — keeps '+keeps+' way'+(keeps>1?'s':'')+' to finish 2×2.</div>';
+  h+='</div>';
+  box.innerHTML=h;
+}
+
+function renderAssist(){
+  const body=document.getElementById('assistBody');
+  const locks=currentLocks();
+  const nLocked=Object.keys(locks).length;
+  const finals=validFinals(locks);
+  let h='';
+  // status line
+  if(nLocked===4){h+='<div class="statusline done">🎉 All 4 labs locked.</div>';}
+  else if(finals.length===0){h+='<div class="statusline bad">⛔ No valid 2-day plan remains. Unlock a lab to recover.</div>';}
+  else{h+='<div class="statusline ok">✅ '+finals.length+' way'+(finals.length>1?'s':'')+' left to finish on exactly 2 days ('+(4-nLocked)+' lab'+((4-nLocked)>1?'s':'')+' to go).</div>';}
+  // day load strip
+  const aliveDays=new Set();finals.forEach(f=>f.days.forEach(d=>aliveDays.add(d)));
+  h+='<div class="daystrip">';
+  for(const d of DAYS){
+    let cnt=0;for(const c in locks){if(PAIR2DW[locks[c]]&&PAIR2DW[locks[c]].day===d)cnt++;}
+    let cls='dchip';if(cnt===2)cls+=' full';else if(cnt===1)cls+=' part';else if(!aliveDays.has(d)&&finals.length)cls+=' dead';
+    h+='<div class="'+cls+'"><div class="dn">'+d+'</div><div class="dl">'+cnt+'/2</div></div>';
+  }
+  h+='</div>';
+  // alive day-pairs
+  if(nLocked<4&&finals.length){
+    const pairKeys=[...new Set(finals.map(f=>f.days.join('+')))];
+    if(pairKeys.length===1){
+      const [d1,d2]=pairKeys[0].split('+');
+      h+='<div class="alivenote">🔒 Locked into <b>'+d1+' + '+d2+'</b>. Remaining slots to fill:</div>';
+      h+='<div class="needlist">';
+      for(const d of [d1,d2]){for(const w of ['A','B']){
+        const pair=WIN[d][w];if(courseAt(pair))continue;
+        const cand=LAB_COURSES.filter(c=>!schedule[c]&&offeredPair(c,pair));
+        h+='<div class="needrow" onclick="gotoSlot(\''+pair+'\')"><span class="nw">'+d+' · '+w+'</span><span class="nc">'+(cand.length?cand.map(c=>ABBR[c]).join(', '):'—')+'</span></div>';
+      }}
+      h+='</div>';
+    }else{
+      h+='<div class="alivenote">Still open day-pairs ('+pairKeys.length+'): '+pairKeys.map(k=>k.replace('+',' + ')).join(', ')+'.</div>';
+    }
+  }
+  body.innerHTML=h;
+}
+
+function renderPlan(){
+  if(!planMode)return;
+  const body=document.getElementById('planBody');
+  let h='<div class="hint" style="margin-bottom:8px">Target: <b>Wed + Thu</b>. Grab scarcest first (top of list).</div>';
+  for(const s of PLAN.steps){
+    const got=schedule[s.course]&&schedule[s.course].lab===s.pair;
+    const taken=courseAt(s.pair)&&courseAt(s.pair)!==s.course;
+    let st=got?'✅':(s.scarce?'⚠️':'⬜');
+    h+='<div class="planrow" onclick="gotoSlot(\''+s.pair+'\')"><span class="st">'+st+'</span>'+
+       '<span class="pc">#'+s.order+' '+esc(s.course)+'</span>'+
+       (s.scarce&&!got?'<span class="sc">'+esc(s.note)+'</span>':'')+
+       '<span class="pw">'+s.day+' · '+s.win+'</span></div>';
+  }
+  h+='<button class="btn primary" style="width:100%;margin-top:6px" onclick="autoFillPlan()">⚡ Auto-fill best available</button>';
+  h+='<div class="fallback">'+esc(PLAN.fallback)+'</div>';
+  body.innerHTML=h;
+}
+
+function renderSchedule(){
+  const body=document.getElementById('schedBody');
+  const all=LAB_COURSES.concat(THEORY_COURSES).filter(c=>schedule[c]);
+  if(!all.length){body.innerHTML='<div class="empty-note">Nothing locked yet.</div>';return;}
+  let h='';
+  for(const c of all){
+    const e=schedule[c];const lab=e.lab?(pairLabel(e.lab)+' · '+e.lab):'theory only';
+    h+='<div class="srow"><span class="sc">'+ABBR[c]+' &middot; '+esc(e.faculty)+(isBL(e)?' <span class="badge bl">⛔</span>':'')+'</span>'+
+       '<span class="sd">'+esc(e.theory)+'<br>'+lab+'</span></div>';
+  }
+  body.innerHTML=h;
+}
+
+function renderTheory(){
+  const body=document.getElementById('theoryBody');
+  let h='';
+  for(const c of THEORY_COURSES){
+    const list=(TEACHERS[c]||[]).slice().sort((a,b)=>rank(a)-rank(b));
+    h+='<div class="grpdiv"><span>'+esc(c)+'</span><span class="ln"></span><span class="gc">'+list.length+'</span></div>';
+    for(const t of list){
+      const sel=schedule[c]&&schedule[c].faculty===t.faculty;
+      let cls='opt';if(sel)cls+=' sel';if(isBL(t))cls+=' black';
+      let badges='';if(isBL(t))badges+='<span class="badge bl">⛔</span>';else if(t.quality==='good')badges+='<span class="badge good">★</span>';
+      h+='<div class="'+cls+'" onclick="setTheory(\''+c+'\',\''+esc(t.faculty).replace(/'/g,"\\'")+'\')">'+
+         '<div class="nm">'+esc(t.faculty)+badges+'</div>'+
+         '<div class="meta">'+esc(t.theory)+' · '+esc(t.venue)+'</div>'+
+         (t.comment?('<div class="cmt">“'+esc(t.comment)+'”</div>'):'')+'</div>';
+    }
+  }
+  body.innerHTML=h;
+}
+
+render();
+</script>
+</body>
+</html>
