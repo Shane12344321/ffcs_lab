@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FFCS Live Picker</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root{--bg:#f3f4f6;--panel:#fff;--panel2:#f8f9fb;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--line2:#cfd4dc;--accent:#2563eb;--ok:#15803d;--bad:#b91c1c;--warn:#b45309;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1014;--panel:#161920;--panel2:#1c2029;--ink:#e6e8ec;--muted:#9aa3b2;--line:#272c37;--line2:#3a4252;--accent:#6ea8ff;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0e1014;--panel:#161920;--panel2:#1c2029;--ink:#e6e8ec;--muted:#9aa3b2;--line:#272c37;--line2:#3a4252;--accent:#6ea8ff;--ok:#4ade80;--bad:#f87171;--warn:#fbbf24;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+.wrap{max-width:1180px;margin:0 auto;padding-block:16px 40px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.gridwrap{overflow-x:auto}.gridwrap table.vit{min-width:480px}
+.layout>div{min-width:0}
+h1{font-size:18px;margin:0}
+.sub{color:var(--muted);font-size:12.5px}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:14px}
+.top .acts{margin-left:auto;display:flex;gap:6px}
+.btn{border:1px solid var(--line2);background:var(--panel);border-radius:8px;padding:5px 10px;font-size:13px}
+.btn:hover{border-color:var(--accent)}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+@media (max-width:760px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.step{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-height:74px}
+.step .n{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.step .v{font-weight:650;margin-top:2px}
+.step .s{font-size:12px;color:var(--muted)}
+.step.cur{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+.step.done{border-color:color-mix(in srgb,var(--ok) 50%,var(--line))}
+.step.done .n{color:var(--ok)}
+.step button{margin-top:6px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 430px;gap:14px;align-items:start}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr)}}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.box h2{font-size:15px;margin:0 0 4px}
+.hint{color:var(--muted);font-size:12.5px;margin:0 0 10px}
+.grp{border:1px solid var(--line);border-radius:10px;margin-top:10px;overflow:hidden}
+.grp.best{border-color:var(--ok)}
+.grp.skip{border-style:dashed;opacity:.85;margin-top:18px}
+.grp header{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:8px 12px;background:var(--panel2);border-bottom:1px solid var(--line)}
+.grp header b{font-size:14px}
+.grp header .m{font-size:12px;color:var(--muted)}
+.grp header .tag{font-size:11px;font-weight:700;border-radius:5px;padding:1px 6px;background:var(--ok);color:#fff}
+.names{display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px}
+.t{display:inline-flex;align-items:center;border:1px solid var(--line2);border-radius:9px;overflow:hidden;background:var(--panel)}
+.t .nm{padding:5px 10px;font-weight:600}
+.t .bd{font-size:10.5px;font-weight:700;border-radius:4px;padding:0 5px;margin-left:6px;vertical-align:1px}
+.bd.rp{background:none;border:1px solid #16a34a;color:#16a34a}.bd.rn{background:none;border:1px solid #dc2626;color:#dc2626}.bd.rs{background:none;border:1px solid #9ca3af;color:#9ca3af}.bd.few{border-style:dashed}.bd[title]{cursor:help}
+.t.neg{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}.t.neg .nm{color:var(--bad)}.negtxt{color:var(--bad);font-weight:600}
+.bd.g{background:#dcfce7;color:#166534}.bd.o{background:#ffedd5;color:#9a3412}.bd.f{background:#e0e7ff;color:#3730a3}
+.t button{border:0;border-left:1px solid var(--line);background:none;padding:5px 10px;font-size:12.5px;font-weight:600}
+.t button.got:hover{background:color-mix(in srgb,var(--ok) 15%,var(--panel));color:var(--ok)}
+.t button.full:hover{background:color-mix(in srgb,var(--bad) 15%,var(--panel));color:var(--bad)}
+.dead{margin-top:14px;font-size:12.5px;color:var(--muted)}
+.dead summary{cursor:pointer}
+.dead li{margin:3px 0}
+.fullbar{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;font-size:12.5px}
+.fullbar span{border:1px solid color-mix(in srgb,var(--bad) 45%,var(--line));color:var(--bad);border-radius:999px;padding:1px 4px 1px 10px}
+.fullbar button{border:0;background:none;color:var(--muted);padding:0 6px}
+.stuck{border:2px solid var(--bad);border-radius:10px;padding:12px;color:var(--bad);margin-top:10px}
+table.vit{border-collapse:collapse;width:100%;table-layout:fixed;font-size:11px;color:#1f2937;background:#fff}
+.vit th,.vit td{border:1px solid #262b33;padding:4px 2px;text-align:center;vertical-align:middle;line-height:1.2}
+.vit th.h{background:#cbc7fb;font-weight:700;font-size:10px}
+.vit th.l{background:#9cc6fb;font-weight:700;font-size:10px}
+.vit th.d{background:#bdbdbd;font-weight:800;width:40px}
+.vit td.f{background:#fffdca;color:#9a9a9a;height:42px;font-size:10.5px}
+.vit td.o{font-weight:700;font-size:10.5px;overflow-wrap:anywhere}
+.vit td.o small{display:block;font-weight:500;color:#4b5563;font-size:9.5px;margin-top:2px}
+.vit td.plan{opacity:.6;outline:2px dotted #4b5563;outline-offset:-4px}
+.vit td.plan em{display:block;font-style:normal;font-size:9px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.05em}
+.grp header .tag.safe{background:var(--accent)}
+.grp header .tag.risk{background:var(--bad)}
+.forced{font-size:12.5px;color:var(--warn);padding:8px 12px 0;font-weight:600}
+.vit td.ghost{background:#fff !important;outline:2px dashed #2563eb;outline-offset:-4px}
+.c-hsm{background:#e5e9f0}.c-crypto{background:#e2d6ff}.c-se{background:#cde9ff}.c-sensors{background:#c8f3d6}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:6px 0 10px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px;border:1px solid #9ca3af}
+.theory td,.theory th{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:top}
+.theory{border-collapse:collapse;width:100%}
+.theory th{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.donebox{border:2px solid var(--ok);border-radius:12px;padding:14px;margin-top:6px}
+.rules{font-size:12px;color:var(--muted);margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>FFCS Live Picker</h1><div class="sub">Pick in order: HSM, Sensors, Crypto, SE (fewest options first). Only options that still lead to a good timetable are shown.<br>Badges: GREEN / ORANGE = review PDF · r/Vit ▲ positive, ▼ negative, ~ split, with the number of students (dashed = under 3, ? = likely match). Hover a badge for quotes · FRIEND #n = your friend's order · <span style="color:var(--bad);font-weight:600">Red name</span> = more negative than positive opinions on r/Vit.</div></div>
+    <div class="acts"><button class="btn" data-act="reset">Start over</button></div>
+  </div>
+  <div class="steps" id="steps"></div>
+  <div class="layout">
+    <div>
+      <section class="box" id="pickBox"></section>
+    </div>
+    <div>
+      <section class="box"><h2>Your afternoons so far</h2><p class="hint">Solid = picked. Dashed blue = the option you're hovering. Dotted = what the rest would have to be.</p>
+        <div class="legend"><span><i class="c-hsm"></i>HSM</span><span><i class="c-crypto"></i>Crypto</span><span><i class="c-se"></i>SE</span><span><i class="c-sensors"></i>Sensors</span></div>
+        <div id="grid" class="gridwrap"></div>
+        <div class="rules">Rules applied: no clashes, no lone 3:51 or 5:40 lab (an HSM class right next to it counts), no empty period between two classes. Blacklisted teachers are already removed.</div>
+      </section>
+      <section class="box"><h2>Theory-only courses</h2><p class="hint">These never clash with any of your options. Pick anyone left.</p><div id="theory"></div></section>
+    </div>
+  </div>
+</div>
+<script>
+"use strict";
+const DATA = {"courses":[{"id":"crypto","short":"Crypto","name":"Cryptography & Network Security","code":"BCSE309L + BCSE309P","type":"lab"},{"id":"se","short":"SE","name":"Software Engineering","code":"BCSE301L + BCSE301P","type":"lab"},{"id":"sensors","short":"Sensors","name":"Sensors & Actuator Devices","code":"BCSE311L + BCSE311P","type":"lab"},{"id":"embedded","short":"Embedded","name":"Embedded Systems","code":"BCSE305L","type":"theory"},{"id":"fog","short":"Fog/Edge","name":"Fundamentals of Fog & Edge Computing","code":"BCSE313L","type":"theory"},{"id":"iot","short":"IoT","name":"IoT Architectures & Protocols","code":"BCSE310L","type":"theory"},{"id":"hsm","short":"HSM","name":"HSM (any one course)","code":"BCLE214L / BCLE216L / BHUM108L","type":"hsm"}],"sections":[{"id":"crypto-1","course":"crypto","fac":"SATISH C.J","slot":"G1+TG1","venue":"SJT423","labSlot":"L33+L34","labVenue":"SJT318"},{"id":"crypto-2","course":"crypto","fac":"MOHANA SUNDARI L","slot":"G1+TG1","venue":"SJT422","labSlot":"L55+L56","labVenue":"SJT318"},{"id":"crypto-3","course":"crypto","fac":"NARESH K","slot":"G1+TG1","venue":"SJT501","labSlot":"L39+L40","labVenue":"SJT318"},{"id":"crypto-4","course":"crypto","fac":"DEEPIKAA S","slot":"G1+TG1","venue":"SJT502","labSlot":"L43+L44","labVenue":"SJT316"},{"id":"crypto-5","course":"crypto","fac":"VIJAYASHREE J","slot":"G1+TG1","venue":"SJT503","labSlot":"L31+L32","labVenue":"SJT416"},{"id":"crypto-6","course":"crypto","fac":"JAYASHREE J","slot":"G1+TG1","venue":"SJT504","labSlot":"L57+L58","labVenue":"SJT416"},{"id":"crypto-7","course":"crypto","fac":"NAVAMANI T M","slot":"G1+TG1","venue":"SJT505","labSlot":"L37+L38","labVenue":"SJT316"},{"id":"crypto-8","course":"crypto","fac":"SELVI M","slot":"G1+TG1","venue":"SJT508","labSlot":"L57+L58","labVenue":"SJT318"},{"id":"crypto-9","course":"crypto","fac":"RUBY D","slot":"G1+TG1","venue":"SJT513","labSlot":"L31+L32","labVenue":"SJT419"},{"id":"crypto-10","course":"crypto","fac":"MURUGAN K","slot":"G1+TG1","venue":"SJT409","labSlot":"L41+L42","labVenue":"SJT419"},{"id":"crypto-11","course":"crypto","fac":"JENICKA S","slot":"G1+TG1","venue":"SJT521","labSlot":"L49+L50","labVenue":"SJT419"},{"id":"crypto-13","course":"crypto","fac":"UMAMAHESWARI M","slot":"G1+TG1","venue":"SJT601","labSlot":"L47+L48","labVenue":"SJT316"},{"id":"crypto-14","course":"crypto","fac":"SREETHAR S","slot":"G1+TG1","venue":"SJT602","labSlot":"L47+L48","labVenue":"SJT419"},{"id":"crypto-15","course":"crypto","fac":"BHUVANESWARI M","slot":"G1+TG1","venue":"SJT602A","labSlot":"L51+L52","labVenue":"SJT317"},{"id":"crypto-16","course":"crypto","fac":"KOVENDAN A.K.P","slot":"G1+TG1","venue":"SJT603","labSlot":"L41+L42","labVenue":"SJT317"},{"id":"crypto-17","course":"crypto","fac":"NITHYA N S","slot":"G1+TG1","venue":"SJT627","labSlot":"L49+L50","labVenue":"SJT318"},{"id":"crypto-18","course":"crypto","fac":"S M FAROOQ","slot":"G1+TG1","venue":"SJT607","labSlot":"L53+L54","labVenue":"SJT317"},{"id":"crypto-19","course":"crypto","fac":"THANGARAMYA K","slot":"D1+TD1","venue":"SJT607","labSlot":"L45+L46","labVenue":"SJT317"},{"id":"crypto-20","course":"crypto","fac":"SURESH A","slot":"G1+TG1","venue":"SJT619","labSlot":"L35+L36","labVenue":"SJT318"},{"id":"crypto-21","course":"crypto","fac":"BERLIN M A","slot":"G1+TG1","venue":"SJT626","labSlot":"L31+L32","labVenue":"SJT317"},{"id":"crypto-22","course":"crypto","fac":"ISLABUDEEN M","slot":"G1+TG1","venue":"SJT604","labSlot":"L37+L38","labVenue":"SJT515"},{"id":"crypto-23","course":"crypto","fac":"SANTHI H","slot":"G1+TG1","venue":"SJT408","labSlot":"L43+L44","labVenue":"SJT318"},{"id":"crypto-24","course":"crypto","fac":"RAMANI S","slot":"G1+TG1","venue":"SJT424","labSlot":"L45+L46","labVenue":"SJT416"},{"id":"crypto-25","course":"crypto","fac":"RAGAVAN K","slot":"G1+TG1","venue":"SJT308","labSlot":"L51+L52","labVenue":"SJT515"},{"id":"se-2","course":"se","fac":"ARIVOLI A","slot":"F1+TF1","venue":"SJT504","labSlot":"L55+L56","labVenue":"SJT316"},{"id":"se-3","course":"se","fac":"SATHYARAJ R","slot":"F1+TF1","venue":"SJT502","labSlot":"L43+L44","labVenue":"SJT621"},{"id":"se-4","course":"se","fac":"MOHANKUMAR B","slot":"F1+TF1","venue":"SJT513","labSlot":"L37+L38","labVenue":"SJT621"},{"id":"se-5","course":"se","fac":"NAGA PRIYADARSINI R","slot":"F1+TF1","venue":"SJT604","labSlot":"L35+L36","labVenue":"SJT317"},{"id":"se-6","course":"se","fac":"BHAWANA TYAGI","slot":"F1+TF1","venue":"SJT617","labSlot":"L37+L38","labVenue":"SJT317"},{"id":"se-7","course":"se","fac":"SWARNALATHA P","slot":"F1+TF1","venue":"SJT421","labSlot":"L49+L50","labVenue":"SJT516"},{"id":"se-8","course":"se","fac":"SARAVANAGURU RA.K","slot":"F1+TF1","venue":"SJT422","labSlot":"L31+L32","labVenue":"SJT621"},{"id":"se-9","course":"se","fac":"BAIJU B V","slot":"F1+TF1","venue":"SJT424","labSlot":"L51+L52","labVenue":"SJT316"},{"id":"se-11","course":"se","fac":"ANTO S","slot":"F1+TF1","venue":"SJT505","labSlot":"L41+L42","labVenue":"SJT417"},{"id":"se-13","course":"se","fac":"PARTHIBAN K","slot":"F1+TF1","venue":"SJT508","labSlot":"L41+L42","labVenue":"SJT316"},{"id":"se-14","course":"se","fac":"VETRISELVI T","slot":"F1+TF1","venue":"SJT521","labSlot":"L39+L40","labVenue":"SJT622"},{"id":"se-15","course":"se","fac":"NAVEENKUMAR J","slot":"F1+TF1","venue":"SJT522","labSlot":"L47+L48","labVenue":"SJT622"},{"id":"se-16","course":"se","fac":"CHANDRU VIGNESH C","slot":"F1+TF1","venue":"SJT602A","labSlot":"L43+L44","labVenue":"SJT416"},{"id":"se-17","course":"se","fac":"PRABIN S M","slot":"F1+TF1","venue":"SJT603","labSlot":"L51+L52","labVenue":"SJT622"},{"id":"se-18","course":"se","fac":"DEEPA D","slot":"F1+TF1","venue":"SJT607","labSlot":"L47+L48","labVenue":"SJT317"},{"id":"se-19","course":"se","fac":"SUDHAKAR K","slot":"F1+TF1","venue":"SJT626","labSlot":"L53+L54","labVenue":"SJT417"},{"id":"se-20","course":"se","fac":"ARUN PRASATH G","slot":"F1+TF1","venue":"SJT627","labSlot":"L53+L54","labVenue":"SJT316"},{"id":"se-21","course":"se","fac":"USHUS ELIZEBETH ZACHARIAH","slot":"F1+TF1","venue":"SJT602","labSlot":"L55+L56","labVenue":"SJT621"},{"id":"se-22","course":"se","fac":"DIVYA MEENA S","slot":"F1+TF1","venue":"SJT315","labSlot":"L45+L46","labVenue":"SJT316"},{"id":"se-23","course":"se","fac":"ADRIJA BHATTACHARYA","slot":"F1+TF1","venue":"SJT619","labSlot":"L51+L52","labVenue":"SJT416"},{"id":"se-24","course":"se","fac":"NAVEEN KUMAR S","slot":"F1+TF1","venue":"SJT601","labSlot":"L35+L36","labVenue":"SJT417"},{"id":"se-25","course":"se","fac":"MISHA CHANDAR B","slot":"B1+TB1","venue":"SJT619","labSlot":"L49+L50","labVenue":"SJT416"},{"id":"sensors-1","course":"sensors","fac":"VIVEKANANDAN S","slot":"D1","venue":"SJT415","labSlot":"L47+L48","labVenue":"SJT516"},{"id":"sensors-2","course":"sensors","fac":"YUVAPRIYA T","slot":"D1","venue":"SJT505","labSlot":"L45+L46","labVenue":"SJT516"},{"id":"sensors-3","course":"sensors","fac":"JANESHWARAN G","slot":"D1","venue":"SJT409","labSlot":"L33+L34","labVenue":"SJT516"},{"id":"embedded-2","course":"embedded","fac":"ANURADHA G","slot":"A1+TA1","venue":"SJT423"},{"id":"embedded-3","course":"embedded","fac":"AJITHA D","slot":"A1+TA1","venue":"SJT424"},{"id":"embedded-4","course":"embedded","fac":"MUCHENEDI HARI KISHOR","slot":"A1+TA1","venue":"SJT501"},{"id":"embedded-5","course":"embedded","fac":"KOPPERUNDEVI N","slot":"A1+TA1","venue":"SJT502"},{"id":"embedded-6","course":"embedded","fac":"PUSHPA GOTHWAL","slot":"A1+TA1","venue":"SJT503"},{"id":"embedded-7","course":"embedded","fac":"MOHANA SUNDARI L","slot":"A1+TA1","venue":"SJT504"},{"id":"embedded-8","course":"embedded","fac":"BALAJI N","slot":"A1+TA1","venue":"SJT505"},{"id":"embedded-9","course":"embedded","fac":"RAGAVAN K","slot":"A1+TA1","venue":"SJT508"},{"id":"embedded-10","course":"embedded","fac":"SUNIJA A P","slot":"A1+TA1","venue":"SJT513"},{"id":"embedded-11","course":"embedded","fac":"GAYATHRI S","slot":"A1+TA1","venue":"SJT521"},{"id":"embedded-12","course":"embedded","fac":"SIVARANJANI A","slot":"A1+TA1","venue":"SJT522"},{"id":"embedded-13","course":"embedded","fac":"SHARMILA C","slot":"A1+TA1","venue":"SJT415"},{"id":"embedded-14","course":"embedded","fac":"JIM SOLOMON RAJA D","slot":"A1+TA1","venue":"SJT601"},{"id":"embedded-15","course":"embedded","fac":"BANUPRIYA R","slot":"A1+TA1","venue":"SJT602A"},{"id":"embedded-16","course":"embedded","fac":"NITHYA K","slot":"A1+TA1","venue":"SJT603"},{"id":"embedded-17","course":"embedded","fac":"SYAMASUDHA VEERAGANDHAM","slot":"A1+TA1","venue":"SJT604"},{"id":"embedded-18","course":"embedded","fac":"MOHAMED YOUSUFF A R","slot":"A1+TA1","venue":"SJT607"},{"id":"embedded-19","course":"embedded","fac":"HELENSHARMILA A","slot":"A1+TA1","venue":"SJT617"},{"id":"embedded-20","course":"embedded","fac":"RADHAKRISHNA MOHANTY","slot":"A1+TA1","venue":"SJT619"},{"id":"embedded-21","course":"embedded","fac":"SARWESH P","slot":"A1+TA1","venue":"SJT626"},{"id":"embedded-22","course":"embedded","fac":"NITHYA N S","slot":"A1+TA1","venue":"SJT324"},{"id":"embedded-24","course":"embedded","fac":"LAKSHMI S","slot":"A1+TA1","venue":"SJT602"},{"id":"embedded-25","course":"embedded","fac":"SHOBHA REKH","slot":"A1+TA1","venue":"SJT308"},{"id":"fog-1","course":"fog","fac":"BAIJU B V","slot":"B1+TB1","venue":"SJT505"},{"id":"fog-2","course":"fog","fac":"ILAYARAJA V","slot":"B1+TB1","venue":"SJT508"},{"id":"fog-3","course":"fog","fac":"KALAAVATHI B","slot":"B1+TB1","venue":"SJT601"},{"id":"iot-1","course":"iot","fac":"WASHIMA TASNIN","slot":"C1+TC1","venue":"SJT408"},{"id":"iot-2","course":"iot","fac":"SHARMILA A","slot":"C1+TC1","venue":"SJT409"},{"id":"iot-3","course":"iot","fac":"VENKATA RAMANA KASI","slot":"C1+TC1","venue":"SJT601"},{"id":"hsm-1","course":"hsm","fac":"KAVITHA M.S","slot":"F2+TF2","venue":"CDMM105","sub":"Global Warming","subCode":"BCLE214L"},{"id":"hsm-2","course":"hsm","fac":"PARIMALA RENGANAYAKI S","slot":"D1+TD1","venue":"CDMM105","sub":"Water Resource Management","subCode":"BCLE216L"},{"id":"hsm-3","course":"hsm","fac":"VIGNESH RAJKUMAR L","slot":"D1+TD1","venue":"CDMM104","sub":"Water Resource Management","subCode":"BCLE216L"},{"id":"hsm-4","course":"hsm","fac":"MAHENTHIRAN S","slot":"G2+TG2","venue":"CDMM107","sub":"Water Resource Management","subCode":"BCLE216L"},{"id":"hsm-5","course":"hsm","fac":"BALAMURUGAN J","slot":"B2+TB2","venue":"SJT409","sub":"Urban Community Development","subCode":"BHUM108L"}],"grid":[["A1/L1","F1/L2","D1/L3","TB1/L4","TG1/L5","L6","A2/L31","F2/L32","D2/L33","TB2/L34","TG2/L35","L36","V3"],["B1/L7","G1/L8","E1/L9","TC1/L10","TAA1/L11","L12","B2/L37","G2/L38","E2/L39","TC2/L40","TAA2/L41","L42","V4"],["C1/L13","A1/L14","F1/L15","V1/L16","V2/L17","L18","C2/L43","A2/L44","F2/L45","TD2/L46","TBB2/L47","L48","V5"],["D1/L19","B1/L20","G1/L21","TE1/L22","TCC1/L23","L24","D2/L49","B2/L50","G2/L51","TE2/L52","TCC2/L53","L54","V6"],["E1/L25","C1/L26","TA1/L27","TF1/L28","TD1/L29","L30","E2/L55","C2/L56","TA2/L57","TF2/L58","TDD2/L59","L60","V7"]],"theoryT":["8:00-8:50","9:00-9:50","10:00-10:50","11:00-11:50","12:00-12:50",null,"2:00-2:50","3:00-3:50","4:00-4:50","5:00-5:50","6:00-6:50","6:51-7:00","7:01-7:50"],"labT":["8:00-8:50","8:51-9:40","9:51-10:40","10:41-11:30","11:40-12:30","12:31-1:20","2:00-2:50","2:51-3:40","3:51-4:40","4:41-5:30","5:40-6:30","6:31-7:20",null]};
+const DAYS = ["Mon","Tue","Wed","Thu","Fri"];
+const BLOCK = {6:"E",7:"E",8:"M",9:"M",10:"V",11:"V"};
+const ORDER = ["hsm", "sensors", "crypto", "se"];
+const LABEL = { hsm: "HSM", crypto: "Crypto", se: "Software Eng.", sensors: "Sensors" };
+const GREEN = ["JAYASHREE J","MURUGAN K","KOVENDAN A.K.P","UMAMAHESWARI M","SREETHAR S","BHUVANESWARI M","RUBY D","RAGAVAN K","DEEPA D","CHANDRU VIGNESH C","PARTHIBAN K","KOPPERUNDEVI N","SARWESH P","KALAAVATHI B","KAVITHA M.S"];
+const ORANGE = ["DEEPIKAA S","SANTHI H","NAVAMANI T M","NAVEENKUMAR J","USHUS ELIZEBETH ZACHARIAH","HELENSHARMILA A"];
+const FRIEND = { crypto: ["VIJAYASHREE J","NITHYA N S","BHUVANESWARI M","MOHANA SUNDARI L"], se: ["CHANDRU VIGNESH C","MOHANKUMAR B","PARTHIBAN K","NAGA PRIYADARSINI R"], sensors: ["JANESHWARAN G","YUVAPRIYA T","VIVEKANANDAN S"], embedded: ["SHARMILA C","GAYATHRI S","MOHANA SUNDARI L"], fog: ["BAIJU B V","KALAAVATHI B","ILAYARAJA V"], iot: ["WASHIMA TASNIN","SHARMILA A","VENKATA RAMANA KASI"] };
+
+const REDDIT = {"ADRIJA BHATTACHARYA": {"c": "positive", "u": 6, "p": 4, "g": 0, "m": 2, "q": ["~ \"Way of teaching is little boring but is chill\" 2026-04", "~ \"Chill faculty provides marks easily. Just you won't understand anything in class\" 2026-04", "+ \"Good and friendly\" 2025-10"], "note": ""}, "ANTO S": {"c": "negative", "u": 5, "p": 1, "g": 3, "m": 1, "q": ["~ \"chill gives deserving marks\" (BCSE308L) 2026-06", "~ \"Very moody guy For some he's goat For some he's blacklist\" (AI) 2025-11", "\u2212 \"He gave me and my friend 3 marks out of 10 for os lab da third\" (OS lab) 2025-11", "\u2212 \"Mf makes your life hell, egoistic narcissistic bitch ass motherfucker\" 2025-11"], "note": ""}, "ARIVOLI A": {"c": "positive", "u": 2, "p": 1, "g": 0, "m": 1, "q": ["~ \"good but she is little bit strict in projects\" (Software Engineering) 2026-10", "+ \"Anusha N, Sreethar, Arivoli are good\" (Computer Networks) 2025-06"], "note": ""}, "ARUN PRASATH G": {"c": "negative", "u": 10, "p": 3, "g": 6, "m": 1, "q": ["+ \"he has literally given free marks to everyone\" (DSA) 2026-05", "+ \"checking was too lenient in internals\" (DSA) 2026-05", "\u2212 \"You're gone broohh You're dead\" (Data Structures and Algorithms (DSA)) 2025-11", "\u2212 \"he just reads through the ppt does not teach anything and gives fucked up papers\" (Data Structures and Algorithms (DSA)) 2025-11"], "note": ""}, "BAIJU B V": {"c": "split", "u": 11, "p": 4, "g": 6, "m": 0, "q": ["\u2212 \"That ipad guy killed me\" (Web Programming) 2025-11", "\u2212 \"Fuck Baiju BV\" (Web Programming) 2025-11", "\u2212 \"very strict and will should at you very badly Not even linnent in giving marks\" (web programming) 2025-11", "\u2212 \"he cut's marks\" (web programming) 2025-11"], "note": ""}, "BALAMURUGAN J": {"c": "split", "u": 12, "p": 7, "g": 5, "m": 0, "q": ["+ \"Balamurugan J is good for HSM\" (HSM (Principles of Sociology)) 2026-06", "+ \"balamurugan is good\" (Urban Community Development) 2025-12", "\u2212 \"he doesn't give marks even if you do your best all depends on his mood\" (Urban Community Development) 2025-11", "\u2212 \"better to drop him, really moody\" (Urban Community Development) 2025-11"], "note": ""}, "BANUPRIYA R": {"c": "positive", "u": 3, "p": 3, "g": 0, "m": 0, "q": ["+ \"Chill faculty\" (Compiler Design) 2026-06", "+ \"Friendly in both class and lab.\" (Compiler Design) 2026-06", "+ \"lab assessments which are very easy to score\" (Compiler Design) 2026-06"], "note": ""}, "BERLIN M A": {"c": "positive", "u": 13, "p": 11, "g": 1, "m": 1, "q": ["+ \"berlin ... good\" 2026-10", "+ \"she was a goated teacher\" (embedded theory) 2026-05", "+ \"your invigilator is a legend for letting you go\" 2026-04", "+ \"good teacher and a good human being\" (python) 2026-04"], "note": ""}, "BHAWANA TYAGI": {"c": "negative", "u": 19, "p": 4, "g": 10, "m": 4, "q": ["+ \"She is pretty good actually\" (TOC and CD) 2026-09", "\u2212 \"YACC pta hi nhi chala kab karwaya aur kab assessment aa gya\" (Compiler Design) 2026-09", "\u2212 \"har 2 hafte me ek assessment\" (Compiler Design) 2026-09", "+ \"she already made this a 10 mark assessment instead of a 20 mark\" (Compiler Design) 2026-09"], "note": ""}, "CHANDRU VIGNESH C": {"c": "positive", "u": 7, "p": 4, "g": 0, "m": 3, "q": ["~ \"good- but you do need to fight for every single mark\" (Computer Networks) 2026-07", "~ \"Chill guy(softie).. doesn't care abt what u do...doesn't teach as much\" (OOPS, CN, AWS) 2025-06", "+ \"Mst faculty hai\" 2025-06", "~ \"is chill but kinda shallow knowledge\" 2025-06"], "note": ""}, "DEEPA D": {"c": "positive", "u": 3, "p": 3, "g": 0, "m": 0, "q": ["+ \"Such a goated faculty genuinely\" (Java) 2026-06", "+ \"easy quizzes and corrects lenient\" 2025-06"], "note": ""}, "DEEPIKAA S": {"c": "split", "u": 9, "p": 3, "g": 5, "m": 1, "q": ["+ \"Deepika S is also good\" (Cryptography) 2026-10", "~ \"Not bad, gives fair markings. 2 Quizzes fairly easy but one thing is that she is very strict with the projects\" 2026-06", "\u2212 \"if not you're fried\" 2026-06", "\u2212 \"She cuts marks for no reason\" (Java) 2026-06"], "note": ""}, "DIVYA MEENA S": {"c": "positive", "u": 2, "p": 2, "g": 0, "m": 0, "q": ["+ \"goated and the best prof i ever met\" 2026-10"], "note": "likely: listed without an initial"}, "ILAYARAJA V": {"c": "positive", "u": 6, "p": 6, "g": 0, "m": 0, "q": ["+ \"he is chill and easy S grade in lab\" (lab) 2026-06", "+ \"heard hes fine\" 2025-06"], "note": ""}, "ISLABUDEEN M": {"c": "negative", "u": 12, "p": 3, "g": 8, "m": 0, "q": ["~ \"he teaches compiler very well ... he can be mad\" (Compiler Design) 2026-10", "\u2212 \"he is very strict in quiz average is 4\" (Compiler Design) 2026-10", "+ \"gives opportunities to improve quiz mark\" (Compiler Design) 2026-10", "\u2212 \"he screws everyone equally imo\" (Compiler Design) 2026-10"], "note": ""}, "JAYASHREE J": {"c": "positive", "u": 18, "p": 16, "g": 0, "m": 1, "q": ["+ \"grading is pretty fair as well\" (OOPS) 2026-10", "+ \"goated faculties\" (Cryptography) 2026-10", "+ \"take her without a doubt\" (Structured and Object-Oriented Programming) 2026-10", " \"honestly just fine- not too good not too bad\" (Artificial Intelligence) 2026-07"], "note": ""}, "JENICKA S": {"c": "negative", "u": 5, "p": 1, "g": 3, "m": 1, "q": ["\u2212 \"Never in your life take mariapan and jenica\" (Cryptography) 2026-10", "\u2212 \"she was who*e\" (Lab FAT) 2025-11", "+ \"jenicka is good\" 2025-11", "~ \"U won't fail and all...but grade is hard to get\" (Design and Analysis of Algorithms (theory)) 2024-11"], "note": ""}, "JIM SOLOMON RAJA D": {"c": "positive", "u": 4, "p": 2, "g": 0, "m": 2, "q": ["~ \"very goated. Teaches very nice and is very friendly and interactive. Class average just goes a little high\" (Embedded system) 2026-10", "+ \"as a proctor he is chill asf\" (Computer Networks) 2026-06", "~ \"In class also he is chill and avg was also okay S at 87. Quiz were little hard\" (Computer Networks) 2026-06", "+ \"he' s good from my friend, a easy going fellow\" (Computer networks) 2026-06"], "note": ""}, "KALAAVATHI B": {"c": "positive", "u": 2, "p": 2, "g": 0, "m": 0, "q": ["+ \"Teaching is fine. Quizzes are easy. she is lenient with internals. overall highly recommended\" (Computer Networks) 2026-06"], "note": ""}, "KAVITHA M.S": {"c": "positive", "u": 3, "p": 2, "g": 0, "m": 1, "q": ["+ \"Teaches well also gives marks super good\" 2026-07", "~ \"A was at 86 for us. S grade yeah kinda\" 2026-07", "+ \"Global Warming under Kavitha MS\" (Global Warming) 2025-06", "+ \"Global warming anyday if u get Kavitha MS then go for it\" (Global Warming) 2025-06"], "note": "likely: listed only as \"Kavitha\", for Global Warming"}, "KOPPERUNDEVI N": {"c": "positive", "u": 8, "p": 6, "g": 1, "m": 0, "q": [" \"has high avg (33-35) with low deviation\" (Embedded systems) 2026-10", "+ \"nice - teaches well\" (Operating Systems) 2026-10", "\u2212 \"She corrects marks strictly\" (Artificial Intelligence) 2025-06"], "note": ""}, "KOVENDAN A.K.P": {"c": "positive", "u": 1, "p": 1, "g": 0, "m": 0, "q": ["+ \"goated faculties\" (Cryptography) 2026-10"], "note": ""}, "LAKSHMI S": {"c": "positive", "u": 13, "p": 7, "g": 3, "m": 2, "q": ["+ \"she take criticism very well and solve all my problem\" 2026-09", "+ \"she's really sweet and i talked briefly with her. she seemed good enough\" 2026-09", " \"getting her appointment is difficult\" 2026-09", "+ \"many ppl said she's good\" (DAA) 2026-06"], "note": ""}, "MARIAPPAN R": {"c": "negative", "u": 230, "p": 32, "g": 189, "m": 9, "q": ["\u2212 \"Never in your life take mariapan\" (Cryptography) 2026-10", "\u2212 \"wait till you hear about Dhanbal R.\" 2026-09", "\u2212 \"famous for failing students\" (Embedded System Architecture) 2026-08", "\u2212 \"he\u2019s the worst faculty you could possibly get\" (AI) 2026-07"], "note": "likely: the page merged Mariappan R with Dhanabal R; quotes name Mariappan R for Crypto and Embedded"}, "MISHA CHANDAR B": {"c": "negative", "u": 3, "p": 0, "g": 2, "m": 0, "q": [" \"she is average\" (DBMS) 2026-10", "\u2212 \"because of lack of experience\" (IACSI204L) 2026-06", "\u2212 \"i will recommend dont take her\" (IACSI204L) 2026-06", "\u2212 \"She is moody and don't even listen anyone. In terms of paper checking, she finishes a paper within 30 seconds\" (IACSI204L) 2026-06"], "note": ""}, "MOHAMED YOUSUFF A R": {"c": "positive", "u": 9, "p": 7, "g": 0, "m": 2, "q": ["+ \"Mohamed yusef\" (Embedded system) 2026-10", "+ \"Very chill and cooperative with students\" (JAVA programming) 2026-08", "+ \"Chill guy ... he gave them all a good grade\" (JAVA programming) 2026-08", "+ \"top 10 goated goats\" (JAVA programming) 2026-08"], "note": ""}, "MOHANA SUNDARI L": {"c": "split", "u": 7, "p": 3, "g": 3, "m": 1, "q": ["\u2212 \"Mohana Sundari is a bit tricky to deal with\" 2026-07", "+ \"it is quite high\" (OS) 2026-06", "~ \"meri toh aise taisi kardi usne par shayad waise thik hai\" (OS) 2026-06", "~ \"she i a good teacher she understands the student ,but the class is slight high\" (OS) 2026-06"], "note": ""}, "MUCHENEDI HARI KISHOR": {"c": "positive", "u": 5, "p": 3, "g": 0, "m": 2, "q": ["+ \"just fill all pages in theory papers and he gives marks\" (Structured and Object-Oriented Programming) 2025-11", "~ \"nice but a bit strict\" (computation) 2025-11", "+ \"full free marks in lab\" (OOPS) 2025-10", "+ \"easy A, and S , also with great teaching skills\" 2024-11"], "note": ""}, "NAGA PRIYADARSINI R": {"c": "split", "u": 11, "p": 3, "g": 6, "m": 2, "q": ["\u2212 \"Naga priyadarshini is a nightmare btw.\" 2026-07", "~ \"she was sweet in class but her grading is a bit strict and quizes are tough\" (OS) 2026-07", "\u2212 \"if she is strict and avg is still high coz of many good scorers then it just makes it worse\" (OS) 2026-07", "\u2212 \"Her quizzes are not easy to crack.\" (OS) 2026-07"], "note": ""}, "NARESH K": {"c": "positive", "u": 3, "p": 2, "g": 0, "m": 1, "q": ["+ \"100 % pass and best teacher in class\" 2024-11", "~ \"a bit strict but good\" 2024-11"], "note": ""}, "NAVAMANI T M": {"c": "split", "u": 8, "p": 3, "g": 3, "m": 0, "q": ["\u2212 \"she doesn't even know even the d part of it\" (DBMS) 2026-08", "+ \"Her teaching is good and she's chill too\" 2026-07", "\u2212 \"she doens't give af\" 2026-06", "\u2212 \"She's a bit strict\" 2026-06"], "note": ""}, "NAVEEN KUMAR S": {"c": "split", "u": 25, "p": 13, "g": 9, "m": 2, "q": ["\u2212 \"+ naveenkumar j\" 2026-10", "\u2212 \"random ahh marking\" (Software Engineering) 2026-10", "+ \"Go for ... naveen kumar s\" (Software Engineering) 2026-10", "+ \"he is quite comprehensive in his teaching methodology\" (Kubernetes) 2026-09"], "note": "the page may have mixed in comments about Naveenkumar J"}, "NITHYA N S": {"c": "split", "u": 12, "p": 4, "g": 5, "m": 3, "q": ["~ \"shes nice. had her in DSA. didnt understand a word she said in class but materials very good and checking good\" (DSA) 2026-06", "\u2212 \"rest were DAs that we did on our own\" (DSA) 2026-06", "~ \"DAs full but cut in lab fat for sumn reason:p\" (DSA) 2026-06", "\u2212 \"she cut like 8-9 marks for no reason\" (DSA) 2026-06"], "note": ""}, "NITHYA K": {"c": "positive", "u": 3, "p": 2, "g": 1, "m": 0, "q": ["+ \"such a chill faculty no pressure at all\" (Compiler Design) 2026-06", "\u2212 \"I'm a lil bit sketchy\" 2026-06", "+ \"Nithya k is good\" 2026-06"], "note": ""}, "PRABIN S M": {"c": "split", "u": 12, "p": 4, "g": 6, "m": 2, "q": ["+ \"will give marks to all\" (Design of Smart Cities) 2026-06", "+ \"Very chill teacher, lenient marking and easy quizzes. A Must take\" (DSA) 2025-07", "\u2212 \"i heard few bad things about him\" (DSA) 2025-07", "\u2212 \"U gotta be fking kidding me\" (DSA) 2025-07"], "note": ""}, "PUSHPA GOTHWAL": {"c": "negative", "u": 5, "p": 0, "g": 4, "m": 1, "q": ["\u2212 \"Pushpa drop here or you get fucked up\" 2026-06", "\u2212 \"this is how internal 30 marks get's fucked up\" (Embedded) 2026-06", "\u2212 \"heard few negatives of Pushpa\" (BCSE355L) 2026-06", "\u2212 \"She gave me hell of work in labs\" 2026-06"], "note": ""}, "RAGAVAN K": {"c": "positive", "u": 7, "p": 5, "g": 1, "m": 0, "q": [" \"The quiz questions were medium level\" (web programming) 2026-08", "\u2212 \"Raghavan chutiya hai\" (Computer Networks) 2026-06", "+ \"like a good option\" 2025-11", "+ \"some of the good ones\" (Computer Network) 2025-06"], "note": ""}, "RAMANI S": {"c": "positive", "u": 17, "p": 16, "g": 1, "m": 0, "q": ["+ \"passes every guy\" 2026-06", "+ \"He is a good teacher surely\" (prob and stats) 2026-06", "~ \"good teacher, but if you use phone or talk with each other he just sends you out\" (prob and stats) 2026-06", "+ \"Veramani, debaroti das and reenu rani(high class ave)\" (Probability and statistics) 2025-10"], "note": ""}, "RUBY D": {"c": "split", "u": 9, "p": 5, "g": 3, "m": 1, "q": ["~ \"ruby teaches nice but strict marking\" 2026-10", "\u2212 \"for crypto it was harsh correction\" (crypto) 2026-06", "+ \"heard that she's good\" (OS) 2026-06", "\u2212 \"she a bit too moody and doesn't teach that well too\" (OS) 2026-06"], "note": ""}, "S M FAROOQ": {"c": "positive", "u": 6, "p": 4, "g": 2, "m": 0, "q": ["+ \"farooq is chill, online quizzes, good guy\" (Cryptography) 2026-10", "+ \"he is very good and very lenient in the class\" (Computer Network) 2026-06", "\u2212 \"he tells the homework for next class and this goes on and on till the end of the sem\" (Python) 2025-11", "+ \"yeah most of the people got S\" (Python) 2025-11"], "note": ""}, "SANTHI H": {"c": "negative", "u": 5, "p": 0, "g": 4, "m": 1, "q": ["\u2212 \"if you write excessive random shit in the paper, she will not give much marks\" 2026-10", "\u2212 \"Ur cooked son\" 2026-10", "~ \"strict but gives marks if content is correct\" (Computer Networks) 2026-06", "\u2212 \"Avoid Santhi H\" (Computer Network) 2025-06"], "note": ""}, "SARWESH P": {"c": "positive", "u": 6, "p": 4, "g": 0, "m": 2, "q": ["~ \"teaches well bit strict    labs are hard\" (BACSE203L) 2026-06", "~ \"chill, nice teaching, marks high but problem he gives mark for all\" 2026-01", "+ \"best teacher i had in VIT\" 2026-01", "+ \"pretty chill in general\" 2025-06"], "note": ""}, "SATHYARAJ R": {"c": "positive", "u": 1, "p": 1, "g": 0, "m": 0, "q": ["+ \"goated (for me atleast)\" (OOPS (C++)) 2025-11", "+ \"Class avg is good\" (OOPS (C++)) 2025-11"], "note": ""}, "SATISH C.J": {"c": "positive", "u": 8, "p": 6, "g": 1, "m": 1, "q": ["+ \"He\u2019s a very good teacher IF you want to learn\" 2026-10", "+ \"He is a living legend in VIT\" 2026-07", "~ \"He is not great with marks\" (Problem Solving using Java (lab)) 2026-07", "\u2212 \"don\u2019t take him\" (Java) 2026-06"], "note": ""}, "SELVI M": {"c": "positive", "u": 3, "p": 2, "g": 1, "m": 0, "q": ["\u2212 \"now i am regretting\" (Computer Networks) 2026-10", "\u2212 \"don't take her\" (Cryptography) 2026-10", "+ \"Ramani and selvi \ud83e\udd1f\" 2025-06"], "note": ""}, "SHARMILA C": {"c": "positive", "u": 4, "p": 4, "g": 0, "m": 0, "q": ["+ \"very good teacher. Just be polite to her. She gives very good marks in internals.\" (DAA) 2025-12", "+ \"she's really good!\" (AWS) 2025-12", "+ \"She's goated. One of the sweetest professors I've ever had.\" (DAA) 2025-11"], "note": ""}, "SHOBHA REKH": {"c": "split", "u": 1, "p": 0, "g": 0, "m": 1, "q": ["~ \"she gives good marks in FAT(pakka pass)\" (Wearable Computing) 2026-06"], "note": ""}, "SREETHAR S": {"c": "positive", "u": 9, "p": 8, "g": 0, "m": 1, "q": ["+ \"sreethar s is chill you can take him\" 2026-06", "~ \"good(teaching as well as nature wise) ... bit strict in LabFAT\" (computer networks) 2026-06", "+ \"guarenteed S in lab, easy marking\" (lab) 2026-06", "+ \"one of the best teachers in Vit\" (CAO) 2025-10"], "note": ""}, "SUDHAKAR K": {"c": "split", "u": 17, "p": 9, "g": 5, "m": 2, "q": ["+ \"Good faculty.... Teaches well and correction is very lenient\" (DBMS) 2026-10", "\u2212 \"he is very not nice about these situations\" 2026-10", "+ \"He\u2019s correction is good. He teaches well and tells us important topics for exam\" (DBMS) 2026-10", "+ \"very pookie and understanding. Never seen him angry\" (DBMS) 2026-10"], "note": ""}, "SUNIJA A P": {"c": "split", "u": 5, "p": 2, "g": 1, "m": 2, "q": ["~ \"teaching is good, chill faculty, but class avg is very high\" (Design and Analysis of Algorithms) 2025-11", "~ \"good and sweet but her class average is high\" 2025-07", "+ \"she usually responds to emails actively\" 2024-12"], "note": ""}, "SURESH A": {"c": "positive", "u": 1, "p": 1, "g": 0, "m": 0, "q": [], "note": ""}, "SYAMASUDHA VEERAGANDHAM": {"c": "negative", "u": 3, "p": 1, "g": 2, "m": 0, "q": ["\u2212 \"the most OA faculty\" 2025-11", "\u2212 \"Super Hype but utter flop\" (OOPS) 2025-11"], "note": ""}, "THANGARAMYA K": {"c": "positive", "u": 5, "p": 5, "g": 0, "m": 0, "q": ["+ \"Thangaramya K is the goat\" (Cryptography) 2026-10", "+ \"Thangaramya maam is chill\" (Cryptography) 2026-10", "+ \"thangaramaya too\" (Cryptography) 2026-10", "+ \"Thangaramya is best\" (Cryptography) 2026-10"], "note": ""}, "USHUS ELIZEBETH ZACHARIAH": {"c": "positive", "u": 11, "p": 6, "g": 2, "m": 2, "q": ["+ \"Ushus Elizabeth\" 2026-01", "+ \"if you really wanna learn the subject\" (Operating Systems) 2025-06", "\u2212 \"She is not strict in quiz...everyone copied \ud83d\ude2d\" (OS) 2025-03", "~ \"very very strict in internals... but she'll pass you for sure, average faculty\" (OS) 2025-01"], "note": ""}, "VENKATA RAMANA KASI": {"c": "split", "u": 2, "p": 1, "g": 1, "m": 0, "q": ["+ \"Venkataraman good\" (Advanced Cloud Computing) 2026-06"], "note": ""}, "VETRISELVI T": {"c": "split", "u": 16, "p": 6, "g": 5, "m": 5, "q": ["~ \"strict but survivable\" 2026-06", "+ \"She will mostly pass everyone in the lab.\" (DSA) 2026-04", "+ \"she gave marks and I passed\" (DSA) 2026-04", "+ \"gave S or A to most people in my class\" (DSA Lab) 2026-03"], "note": ""}, "VIGNESH RAJKUMAR L": {"c": "split", "u": 1, "p": 0, "g": 0, "m": 1, "q": ["~ \"Stingy in giving full but fine otherwise\" (global warming) 2026-10"], "note": ""}, "WASHIMA TASNIN": {"c": "positive", "u": 11, "p": 8, "g": 1, "m": 2, "q": ["+ \"Washima tasnin\" (Analog Electronics) 2026-10", "~ \"her way of teaching is good but she has a lot of mood swings\" 2026-10", "+ \"Will pass you\" (BEEE) 2025-07", "+ \"Very good teacher\" (BEEE) 2025-07"], "note": ""}, "YUVAPRIYA T": {"c": "positive", "u": 2, "p": 2, "g": 0, "m": 0, "q": ["+ \"believe me you won't regret less\" (BEEE) 2025-10", "+ \"Much better than the other 2 in the list\" (Signals and Systems) 2025-08"], "note": ""}} || {};
+// more negative than positive opinions on r/Vit
+const isNeg = fac => { const r = REDDIT[fac]; return !!r && (r.g > r.p || r.c === "negative"); };
+function redditBadge(fac, short) {
+  const r = REDDIT[fac]; if (!r) return "";
+  const cls = r.c === "positive" ? "rp" : r.c === "negative" ? "rn" : "rs";
+  const sym = r.c === "positive" ? "▲" : r.c === "negative" ? "▼" : "~";
+  const tip = `r/Vit: ${r.c} · ${r.u} student${r.u === 1 ? "" : "s"} (${r.p} positive, ${r.g} negative, ${r.m} mixed)` + (r.note ? `\nNote: ${r.note}` : "") + (r.q.length ? "\n\n" + r.q.join("\n") : "");
+  return `<span class="bd ${cls}${r.u < 3 ? " few" : ""}${r.note ? " lk" : ""}" title="${esc(tip)}">${short ? "r" : "r/Vit"} ${sym}${r.u}${r.note ? "?" : ""}</span>`;
+}
+const POS = {};
+DATA.grid.forEach((row, d) => row.forEach((cell, c) => cell.split("/").forEach(p => { (POS[p] = POS[p] || []).push([d, c]); })));
+const cellsOf = slot => slot.split("+").flatMap(p => (POS[p] || []).map(([d, c]) => d * 13 + c));
+const suffix = t => { const h = +t.split(":")[0]; return (h >= 8 && h <= 11) ? "AM" : "PM"; };
+const fmtRange = (a, b) => suffix(a) === suffix(b) ? `${a}–${b} ${suffix(b)}` : `${a} ${suffix(a)}–${b} ${suffix(b)}`;
+function spanText(cells, lab) {
+  const T = lab ? DATA.labT : DATA.theoryT, byDay = {};
+  cells.forEach(x => { (byDay[Math.floor(x / 13)] = byDay[Math.floor(x / 13)] || []).push(x % 13); });
+  return Object.keys(byDay).map(d => { const cs = byDay[d].sort((a, b) => a - b); return `${DAYS[d]} ${fmtRange(T[cs[0]].split("-")[0], T[cs[cs.length - 1]].split("-")[1])}`; }).join(", ");
+}
+const SECS = DATA.sections;
+SECS.forEach(s => {
+  s.thCells = cellsOf(s.slot); s.labCells = s.labSlot ? cellsOf(s.labSlot) : [];
+  s.cells = s.thCells.concat(s.labCells);
+  s.pmCells = s.cells.filter(x => x % 13 >= 6);
+  s.blocks = s.labCells.filter(x => BLOCK[x % 13]).map(x => [Math.floor(x / 13), BLOCK[x % 13]]);
+  s.when = s.labSlot ? spanText(s.labCells, true) : spanText(s.pmCells.length ? s.pmCells : s.thCells, false);
+  s.sig = s.slot + "|" + (s.labSlot || "");
+});
+// last resort: register no HSM this semester
+SECS.push({ id: "hsm-skip", course: "hsm", fac: "SKIP HSM", slot: "none", sub: "No HSM this semester", subCode: "", venue: "", skip: true,
+  thCells: [], labCells: [], cells: [], pmCells: [], blocks: [], sig: "skip", when: "no HSM classes", thText: "" });
+const FIXED = new Set(["embedded", "fog", "iot"].flatMap(c => SECS.find(s => s.course === c).thCells));
+const esc = x => String(x).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const $ = id => document.getElementById(id);
+
+const KEY = "ffcs-live-v1";
+let st; try { st = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { st = {}; }
+st = Object.assign({ pick: {}, full: {} }, st);
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+
+const avail = cid => SECS.filter(s => s.course === cid && !st.full[s.id]);
+const clashes = (s, used) => s.cells.some(x => used.has(x));
+
+// a complete selection is good if labs follow the day patterns and no afternoon has an empty period between classes
+function judge(sel) {
+  const days = {}, pm = {};
+  sel.forEach(s => {
+    s.blocks.forEach(([d, b]) => (days[d] = days[d] || new Set()).add(b));
+    s.pmCells.forEach(x => (pm[Math.floor(x / 13)] = pm[Math.floor(x / 13)] || new Set()).add(x % 13));
+  });
+  for (const d of Object.keys(days)) {
+    const bs = days[d], cs = pm[d];
+    if (bs.has("M") && !cs.has(7) && !cs.has(10)) return null;
+    if (bs.has("V") && !cs.has(9)) return null;
+  }
+  let lead = 0;
+  for (const cs of Object.values(pm)) {
+    const lo = Math.min(...cs), hi = Math.max(...cs);
+    if (hi - lo + 1 !== cs.size) return null;
+    lead += lo - 6;
+  }
+  return { pm: Object.keys(pm).length, lead };
+}
+// all good completions from step i onward, given chosen sections
+function complete(i, chosen, used, out) {
+  if (i === ORDER.length) { const j = judge(chosen); if (j) out.push(Object.assign(j, { sel: chosen.slice() })); return; }
+  for (const s of avail(ORDER[i])) {
+    if (clashes(s, used)) continue;
+    const nu = new Set(used); s.cells.forEach(x => nu.add(x));
+    chosen.push(s); complete(i + 1, chosen, nu, out); chosen.pop();
+  }
+}
+function state() {
+  const chosen = [], used = new Set(FIXED);
+  let step = 0;
+  for (; step < ORDER.length; step++) {
+    const s = SECS.find(x => x.id === st.pick[ORDER[step]]);
+    if (!s) break;
+    chosen.push(s); s.cells.forEach(x => used.add(x));
+  }
+  return { chosen, used, step };
+}
+function whyDead(s, chosen) {
+  const hit = chosen.find(c => c.cells.some(x => s.cells.includes(x)));
+  if (hit) return `clashes with your ${LABEL[hit.course]} (${hit.course === "hsm" ? hit.slot : hit.labSlot})`;
+  if ([...FIXED].some(x => s.cells.includes(x))) return "clashes with a theory-only course slot";
+  return "every way of finishing would leave a lone lab or an empty period";
+}
+
+let hover = null, planAll = null, planByOpt = {};
+const better = (a, b) => !b || a.pm < b.pm || (a.pm === b.pm && a.lead < b.lead);
+const bestOf = list => list.reduce((b, j) => better(j, b) ? j : b, null);
+// two later slots such that every remaining finish uses at least one of them (a hidden single point of failure)
+function dependsOn(out, step) {
+  if (out.length < 2) return null;
+  const units = new Map();
+  out.forEach((o, i) => o.sel.slice(step + 1).forEach(x => {
+    const key = x.course + "|" + x.sig;
+    if (!units.has(key)) units.set(key, { k: x.course, slot: x.labSlot || x.slot, facs: new Set(), hit: new Set() });
+    const u = units.get(key); u.facs.add(x.fac); u.hit.add(i);
+  }));
+  const us = [...units.values()].filter(u => u.hit.size < out.length);
+  let pick = null;
+  for (let a = 0; a < us.length; a++) for (let b = a + 1; b < us.length; b++) {
+    if (us[a].k === us[b].k) continue;
+    const cover = new Set([...us[a].hit, ...us[b].hit]);
+    if (cover.size === out.length) { const w = us[a].facs.size + us[b].facs.size; if (!pick || w < pick.w) pick = { w, u: [us[a], us[b]] }; }
+  }
+  return pick && pick.w <= 3 ? pick.u.map(u => ({ k: u.k, slot: u.slot, facs: [...u.facs] })) : null;
+}
+// later courses that every remaining finish pins to one slot
+function forcedLater(out, step) {
+  return ORDER.slice(step + 1).map(k => {
+    const secs = out.map(o => o.sel.find(x => x.course === k));
+    const sigs = new Set(secs.map(x => x.sig));
+    return sigs.size === 1 ? { k, slot: secs[0].labSlot || secs[0].slot, facs: [...new Set(secs.map(x => x.fac))] } : null;
+  }).filter(Boolean);
+}
+function render() {
+  const { chosen, used, step } = state();
+  // steps
+  $("steps").innerHTML = ORDER.map((cid, i) => {
+    const s = chosen[i];
+    return `<div class="step${i === step ? " cur" : ""}${s ? " done" : ""}"><div class="n">${i + 1}. ${LABEL[cid]}${s ? " ✓" : ""}</div>` +
+      (s ? `<div class="v">${esc(s.fac)}</div><div class="s">${esc(cid === "hsm" ? s.sub + " · " + s.slot : s.labSlot + " · " + s.when)}</div><button class="btn" data-act="undo" data-i="${i}">Change</button>`
+        : `<div class="s">${i === step ? "Pick now" : "Waiting"}</div>`) + `</div>`;
+  }).join("");
+  // options for current step
+  let h = "";
+  if (step === ORDER.length) {
+    h = `<div class="donebox"><h2>All four locked in ✓</h2><p class="hint" style="margin:0">Your HSM and labs are set. Finish the theory-only courses from the list on the right.</p></div>`;
+  } else {
+    const cid = ORDER[step];
+    const opts = avail(cid).map(s => {
+      if (clashes(s, used)) return { s, n: 0 };
+      const out = [], nu = new Set(used); s.cells.forEach(x => nu.add(x));
+      complete(step + 1, chosen.concat(s), nu, out);
+      return { s, n: out.length, best: bestOf(out), out };
+    });
+    const live = opts.filter(o => o.n), dead = opts.filter(o => !o.n);
+    const groups = new Map();
+    live.forEach(o => { if (!groups.has(o.s.sig)) groups.set(o.s.sig, []); groups.get(o.s.sig).push(o); });
+    const gl = [...groups.values()].map(g => { const out = g.flatMap(o => o.out); const forced = forcedLater(out, step); return { g, best: bestOf(out), n: out.length, forced, dep: forced.length ? null : dependsOn(out, step) }; })
+      .sort((a, b) => (a.g[0].s.skip ? 1 : 0) - (b.g[0].s.skip ? 1 : 0) || a.best.pm - b.best.pm || a.best.lead - b.best.lead || b.n - a.n);
+    planByOpt = {}; live.forEach(o => planByOpt[o.s.id] = o.best.sel);
+    planAll = live.length ? bestOf(live.map(o => o.best)).sel : null;
+    const total = live.reduce((a, o) => a + (o.s.skip ? 0 : o.n), 0), maxN = Math.max(0, ...gl.filter(x => !x.g[0].s.skip).map(x => x.n));
+    h += `<h2>Step ${step + 1}: pick your ${LABEL[cid]}</h2><p class="hint">${live.length} teacher${live.length === 1 ? "" : "s"} still work, ${total} way${total === 1 ? "" : "s"} to finish from here. Teachers in the same box share the same slot, so any of them is a safe swap. Press ✓ when you get one, ✕ if it's full. Dotted cells on the grid show how the rest would be filled.</p>`;
+    if (!live.length) h += `<div class="stuck">Nothing left works with your earlier picks. Press Change on an earlier step, or un-mark a section you marked full.</div>`;
+    gl.forEach((x, gi) => {
+      const s0 = x.g[0].s;
+      const title = cid === "hsm" ? `${s0.sub} · ${s0.slot}` : `${s0.when} · ${s0.labSlot}`;
+      const sub = cid === "hsm" ? s0.when : `theory ${s0.slot}`;
+      const sk = s0.skip;
+      if (sk) { h += `<div class="grp skip"><header><b>Skip HSM</b><span class="tag risk">LAST RESORT</span><span class="m">Register no HSM this semester. You'd still have to complete HSM credits later. With no HSM: best finish ${x.best.pm} afternoon${x.best.pm === 1 ? "" : "s"} · ${x.n} ways to finish</span></header><div class="names"><span class="t" data-hover="${s0.id}"><span class="nm">No HSM</span><button class="got" data-act="got" data-id="${s0.id}">✓ Skip HSM</button></span></div></div>`; return; }
+      h += `<div class="grp${gi === 0 ? " best" : ""}"><header><b>${esc(title)}</b><span class="m">${esc(sub)}</span>${gi === 0 ? '<span class="tag">BEST WEEK</span>' : ""}${x.n === maxN && gl.length > 1 ? '<span class="tag safe">SAFEST</span>' : ""}${x.n <= 2 && step < ORDER.length - 1 ? `<span class="tag risk">RISKY: only ${x.n} way${x.n === 1 ? "" : "s"} to finish</span>` : ""}<span class="m">best finish: ${x.best.pm} afternoon${x.best.pm === 1 ? "" : "s"}${x.best.lead ? `, ${x.best.lead} empty before a lone HSM` : ""} · ${x.n} way${x.n === 1 ? "" : "s"} to finish</span></header>` +
+        (x.forced.length ? `<div class="forced">Locks you into: ${x.forced.map(f => `${LABEL[f.k]} ${esc(f.slot)} (${f.facs.map(esc).join(" / ")})`).join("; ")}</div>` : "") +
+        (x.dep ? `<div class="forced">Depends on getting one of: ${x.dep.map(u => `${LABEL[u.k]} ${esc(u.slot)} (${u.facs.map(esc).join(" / ")})`).join(" or ")}</div>` : "") + `<div class="names">` +
+        x.g.map(o => {
+          const f = o.s.fac;
+          const badges = (GREEN.includes(f) ? '<span class="bd g">GREEN</span>' : "") + (ORANGE.includes(f) ? '<span class="bd o">ORANGE</span>' : "") + redditBadge(f) + ((FRIEND[cid] || []).includes(f) ? `<span class="bd f" title="Your friend's choice #${FRIEND[cid].indexOf(f) + 1} for this course">FRIEND #${FRIEND[cid].indexOf(f) + 1}</span>` : "");
+          return `<span class="t${isNeg(f) ? " neg" : ""}" data-hover="${o.s.id}"><span class="nm">${esc(f)}${badges}</span><button class="got" data-act="got" data-id="${o.s.id}" title="I got this one">✓ Got</button><button class="full" data-act="full" data-id="${o.s.id}" title="This section is full">✕ Full</button></span>`;
+        }).join("") + `</div></div>`;
+    });
+    if (dead.length) h += `<details class="dead"><summary>${dead.length} not possible right now</summary><ul>${dead.map(o => `<li><b>${esc(o.s.fac)}</b> (${esc(cid === "hsm" ? o.s.slot : o.s.labSlot)}): ${esc(whyDead(o.s, chosen))}</li>`).join("")}</ul></details>`;
+  }
+  const fulls = SECS.filter(s => st.full[s.id]);
+  if (fulls.length) h += `<div class="fullbar"><b style="color:var(--muted)">Marked full:</b>${fulls.map(s => `<span>${esc(s.fac)} (${esc(LABEL[s.course] || s.course)})<button data-act="unfull" data-id="${s.id}" title="Not full">✕</button></span>`).join("")}</div>`;
+  if (step === ORDER.length) { planAll = null; planByOpt = {}; }
+  $("pickBox").innerHTML = h;
+  renderGrid(chosen);
+  renderTheory();
+}
+function renderGrid(chosen) {
+  const occ = {}, skip = new Set();
+  const put = (s, ghost) => {
+    s.pmCells.forEach(x => { if (!s.labCells.includes(x)) occ[x] = { s, ghost, label: s.slot.split("+").find(p => (POS[p] || []).some(([d, c]) => d * 13 + c === x)) }; });
+    const lc = s.labCells.slice().sort((a, b) => a - b);
+    for (let i = 0; i < lc.length; i += 2) { occ[lc[i]] = { s, ghost, label: s.labSlot, span: lc[i + 1] === lc[i] + 1 ? 2 : 1 }; if (lc[i + 1] === lc[i] + 1) skip.add(lc[i + 1]); }
+  };
+  const hs = hover && SECS.find(x => x.id === hover);
+  const plan = (hs && planByOpt[hs.id]) || planAll || [];
+  plan.forEach(s => { if (!chosen.includes(s) && s !== hs) put(s, "plan"); });
+  chosen.forEach(s => put(s, false));
+  if (hs && !chosen.includes(hs)) put(hs, true);
+  const cols = [6, 7, 8, 9, 10, 11, 12];
+  const two = t => t ? t.replace("-", "<br>") : "";
+  let h = `<table class="vit"><tr><th class="d"></th>${cols.map(c => `<th class="h">${two(DATA.theoryT[c])}</th>`).join("")}</tr><tr><th class="d"></th>${cols.map(c => `<th class="l">${two(DATA.labT[c])}</th>`).join("")}</tr>`;
+  DAYS.forEach((d, di) => {
+    h += `<tr><th class="d">${d}</th>`;
+    cols.forEach(c => {
+      const x = di * 13 + c; if (skip.has(x)) return;
+      const o = occ[x];
+      if (!o) { h += `<td class="f">${esc(DATA.grid[di][c].split("/").pop())}</td>`; return; }
+      h += `<td class="o c-${o.s.course}${o.ghost === "plan" ? " plan" : o.ghost ? " ghost" : ""}"${o.span === 2 ? ' colspan="2"' : ""}>${o.ghost === "plan" ? "<em>next</em>" : ""}${esc(o.s.fac.split(" ")[0][0] + o.s.fac.split(" ")[0].slice(1).toLowerCase())}<small>${esc(LABEL[o.s.course])} · ${esc(o.label || "")}</small></td>`;
+    });
+    h += `</tr>`;
+  });
+  $("grid").innerHTML = h + `</table>`;
+}
+function renderTheory() {
+  $("theory").innerHTML = `<table class="theory"><tr><th>Course</th><th>Slot</th><th>Teachers left</th></tr>` +
+    ["embedded", "fog", "iot"].map(cid => {
+      const list = SECS.filter(s => s.course === cid);
+      const name = { embedded: "Embedded", fog: "Fog/Edge", iot: "IoT" }[cid];
+      return `<tr><td><b>${name}</b></td><td>${esc(list[0].slot)}</td><td>${list.map(s => `${isNeg(s.fac) ? `<span class="negtxt">${esc(s.fac)}</span>` : esc(s.fac)}${redditBadge(s.fac, true) ? " " + redditBadge(s.fac, true) : ""}${GREEN.includes(s.fac) ? ' <span class="bd g">G</span>' : ""}${ORANGE.includes(s.fac) ? ' <span class="bd o">O</span>' : ""}${FRIEND[cid].includes(s.fac) ? ` <span class="bd f" title="Your friend's choice #${FRIEND[cid].indexOf(s.fac) + 1}">F${FRIEND[cid].indexOf(s.fac) + 1}</span>` : ""}`).join(", ")}</td></tr>`;
+    }).join("") + `</table>`;
+}
+
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const a = b.dataset.act, id = b.dataset.id;
+  if (a === "got") { st.pick[SECS.find(s => s.id === id).course] = id; hover = null; }
+  else if (a === "full") { st.full[id] = true; hover = null; }
+  else if (a === "unfull") delete st.full[id];
+  else if (a === "undo") ORDER.slice(+b.dataset.i).forEach(c => delete st.pick[c]);
+  else if (a === "reset") {
+    if (b.dataset.armed !== "1") { b.dataset.armed = "1"; b.textContent = "Tap again to clear everything"; setTimeout(() => { b.dataset.armed = ""; b.textContent = "Start over"; }, 4000); return; }
+    st = { pick: {}, full: {} }; b.dataset.armed = ""; b.textContent = "Start over";
+  }
+  else return;
+  save(); render();
+});
+document.addEventListener("mouseover", e => {
+  const t = e.target.closest("[data-hover]"); const id = t ? t.dataset.hover : null;
+  if (id !== hover) { hover = id; renderGrid(state().chosen); }
+});
+render();
+</script>
+</body>
+</html>
